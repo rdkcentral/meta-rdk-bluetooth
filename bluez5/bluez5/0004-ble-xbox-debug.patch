@@ -1,0 +1,17 @@
+Date: Oct 21, 2022
+From: Sreejith Ravi <sreejith.ravi@sky.uk>
+Source: COMCAST
+Subject: Added fixes and ebaled debug in bluez to support  wireles Game controller over Bluetooth on BCM and Realtek platforms.
+Signed-off-by: Sreejith Ravi <sreejith.ravi@sky.uk>
+diff -Naur bluez-5.54/src/bluetooth.service.in bluez-5.54_mod/src/bluetooth.service.in
+--- bluez-5.54/src/bluetooth.service.in	2019-09-19 18:51:03.000000000 +0000
++++ bluez-5.54_mod/src/bluetooth.service.in	2022-09-26 17:40:09.859889437 +0000
+@@ -6,7 +6,7 @@
+ [Service]
+ Type=dbus
+ BusName=org.bluez
+-ExecStart=@pkglibexecdir@/bluetoothd
++ExecStart=@pkglibexecdir@/bluetoothd -d
+ NotifyAccess=main
+ #WatchdogSec=10
+ #Restart=on-failure

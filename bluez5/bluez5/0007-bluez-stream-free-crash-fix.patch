@@ -1,0 +1,23 @@
+Date: Jul 7, 2023
+From: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
+Source: COMCAST
+Subject: Fix for Bluetoothd process crash(stream_free) for bluez5
+Signed-off-by: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
+Index: bluez-5.54/profiles/audio/avdtp.c
+===================================================================
+--- bluez-5.54.orig/profiles/audio/avdtp.c
++++ bluez-5.54/profiles/audio/avdtp.c
+@@ -707,8 +707,11 @@ static void stream_free(void *data)
+ 	struct avdtp_stream *stream = data;
+ 	struct avdtp_remote_sep *rsep;
+ 
+-	stream->lsep->info.inuse = 0;
+-	stream->lsep->stream = NULL;
++        if (stream->lsep) {
++            stream->lsep->info.inuse = 0;
++            if (stream->lsep->stream)
++                stream->lsep->stream = NULL;
++        }
+ 
+ 	rsep = find_remote_sep(stream->session->seps, stream->rseid);
+ 	if (rsep)

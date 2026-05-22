@@ -1,0 +1,152 @@
+#########################################################################
+Date: Apr 2, 2025 16:19 PM
+
+Subject: This was to fix an issue with a new firmware of Platco RCU which
+added extra firmware
+Stop BlueZ from failing gatt discovery when adding already populated
+services back to the database. In this case just ignore them
+
+Source: Sky
+Upstream-Status: Pending
+Signed-off-by: Jack O'Gorman <jack.ogorman@sky.uk>
+#########################################################################
+diff --git a/src/shared/gatt-client.c b/src/shared/gatt-client.c
+index 410944924..86be70689 100644
+--- a/src/shared/gatt-client.c
++++ b/src/shared/gatt-client.c
+@@ -156,6 +156,18 @@ static struct request *request_create(struct bt_gatt_client *client)
+ 	return request_ref(req);
+ }
+ 
++
++static void print_uuid(const bt_uuid_t *uuid, struct bt_gatt_client *client)
++{
++	char uuid_str[MAX_LEN_UUID_STR];
++	bt_uuid_t uuid128;
++
++	bt_uuid_to_uuid128(uuid, &uuid128);
++	bt_uuid_to_string(&uuid128, uuid_str, sizeof(uuid_str));
++
++	util_debug(client->debug_callback, client->debug_data, "%s\n", uuid_str);
++}
++
+ static void request_unref(void *data)
+ {
+ 	struct request *req = data;
+@@ -569,29 +581,51 @@ static bool discover_descs(struct discovery_op *op, bool *discovering)
+ 	struct gatt_db_attribute *attr;
+ 	struct chrc *chrc_data;
+ 	uint16_t desc_start;
+-
+ 	*discovering = false;
++	bt_uuid_t uuid;
+ 
+ 	while ((chrc_data = queue_pop_head(op->pending_chrcs))) {
+ 		struct gatt_db_attribute *svc;
+ 		uint16_t start, end;
+ 
+-		attr = gatt_db_insert_characteristic(client->db,
+-							chrc_data->value_handle,
+-							&chrc_data->uuid, 0,
+-							chrc_data->properties,
+-							NULL, NULL, NULL);
+-
+-		if (!attr) {
+-			util_debug(client->debug_callback, client->debug_data,
+-				"Failed to insert characteristic at 0x%04x",
+-				chrc_data->value_handle);
+-			goto failed;
++		//Before inserting characteristic, check to see if it already exists in the database.
++		//In the case that the service change indication incorrectly marks the services to change
++		//extra characteristics may be marked pending when they have not been changed
++		attr = gatt_db_get_attribute(client->db, chrc_data->value_handle - 1);
++		if (attr)
++		{
++			gatt_db_attribute_get_char_data(attr, NULL, NULL, NULL, NULL, &uuid);
++			util_debug(client->debug_callback, client->debug_data, "Attribute value exists already in the database, checking following uuids:");
++			print_uuid(&uuid, client);
++			print_uuid(&chrc_data->uuid, client);
++			if (!bt_uuid_cmp(&chrc_data->uuid, &uuid))
++			{
++				util_debug(client->debug_callback, client->debug_data, "Trying to add a characteristic that already exists we will skip adding this");
++			}
+ 		}
++        if (!attr || bt_uuid_cmp(&uuid, &chrc_data->uuid))
++		{
++			attr = gatt_db_insert_characteristic(client->db,
++								chrc_data->value_handle,
++								&chrc_data->uuid, 0,
++								chrc_data->properties,
++								NULL, NULL, NULL);
+ 
+-		if (gatt_db_attribute_get_handle(attr) !=
+-							chrc_data->value_handle)
+-			goto failed;
++			if (!attr) {
++				util_debug(client->debug_callback, client->debug_data,
++					"Failed to insert characteristic at 0x%04x",
++					chrc_data->value_handle);
++				goto failed;
++			}
++
++			if (gatt_db_attribute_get_handle(attr) !=
++								chrc_data->value_handle)
++				goto failed;
++		}
++		else
++		{
++			util_debug(client->debug_callback, client->debug_data, "Not adding characteristic as it already exists in the database");
++		}
+ 
+ 		/* Adjust current service */
+ 		svc = gatt_db_get_service(client->db, chrc_data->value_handle);
+@@ -777,19 +811,38 @@ static void discover_descs_cb(bool success, uint8_t att_ecode,
+ 		util_debug(client->debug_callback, client->debug_data,
+ 						"handle: 0x%04x, uuid: %s",
+ 						handle, uuid_str);
+-
+-		attr = gatt_db_insert_descriptor(client->db, handle,
+-							&uuid, 0, NULL, NULL,
+-							NULL);
+-		if (!attr) {
+-			util_debug(client->debug_callback, client->debug_data,
+-				"Failed to insert descriptor at 0x%04x",
+-				handle);
+-			goto failed;
++		attr = gatt_db_get_attribute(client->db, handle);
++		if (attr)
++		{
++			util_debug(client->debug_callback, client->debug_data, "Attribute value exists already in the database, checking following uuids:");
++			print_uuid(gatt_db_attribute_get_type(attr), client);
++			print_uuid(&uuid, client);
++				if (!bt_uuid_cmp(gatt_db_attribute_get_type(attr), &uuid))
++				{
++					util_debug(client->debug_callback, client->debug_data, "Trying to add a descriptor that already exists we will skip adding this");
++				}
+ 		}
++        if (!attr || bt_uuid_cmp(gatt_db_attribute_get_type(attr), &uuid))
++		{
+ 
+-		if (gatt_db_attribute_get_handle(attr) != handle)
+-			goto failed;
++			attr = gatt_db_insert_descriptor(client->db, handle,
++								&uuid, 0, NULL, NULL,
++								NULL);
++			if (!attr) {
++				util_debug(client->debug_callback, client->debug_data,
++					"Failed to insert descriptor at 0x%04x",
++					handle);
++				goto failed;
++			}
++
++			if (gatt_db_attribute_get_handle(attr) != handle)
++				goto failed;
++		
++		}
++		else
++		{
++			util_debug(client->debug_callback, client->debug_data, "Not adding descriptor as it already exists in the database");
++		}
+ 
+ 		if (!bt_uuid_cmp(&ext_prop_uuid, &uuid))
+ 			queue_push_tail(op->ext_prop_desc, attr);

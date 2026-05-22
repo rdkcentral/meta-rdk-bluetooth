@@ -1,0 +1,23 @@
+Date: Feb 5, 2024
+From: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
+Source: COMCAST
+Subject: Patch for BtrMgrBus process crash
+Signed-off-by: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
+Index: bluez-5.48/src/device.c
+===================================================================
+--- bluez-5.48.orig/src/device.c
++++ bluez-5.48/src/device.c
+@@ -2699,6 +2699,13 @@ void device_add_connection(struct btd_de
+ {
+ 	struct bearer_state *state = get_state(dev, bdaddr_type);
+ 
++        if(g_strcmp0(dev->modalias, "usb:v045Ep0B13d0501") == 0)
++        {
++           warn("Unsupport version gamepad Gen4 = %s \n", dev->modalias);
++           device_set_auto_connect(dev, FALSE);
++           btd_adapter_remove_device(dev->adapter, dev);
++           return;
++        }
+ 	device_update_last_seen(dev, bdaddr_type);
+ 
+ 	if (state->connected) {

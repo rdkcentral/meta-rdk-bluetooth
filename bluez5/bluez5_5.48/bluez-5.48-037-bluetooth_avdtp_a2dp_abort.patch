@@ -1,0 +1,1096 @@
+Date: Nov 14, 2022
+From: Chandresh Pitty <Chandresh_Pitty@cable.comcast.com>
+Source: Patch created by combining following changes inorder from Bluez
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/profiles/audio?id=a1a7f09383d498a3cb18269e65258bde115eed2b
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/profiles/audio?id=1f6a90d5b35d05ba6466acc6c3dd71b9ca7c693c
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=c62a395deabcc059341b0289a37bf9039c1f3062
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=b2fd4c7e1ecf715a0f56e0a4534329db9b4e44b1
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=52faac4648500dd45c06b6aa41f1be426c43a125
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=ae5be371a9f53fed33d2b34748a95a5498fd4b77
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=9541d862f012ff0d00b5cc86613b80f0d2d89afc
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=622d98afbb4f147d0ead1961c80406072bc45aa7
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=2fd62cdbc194ce7c5ddf07ec54126de57c28f1f9
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=41fd2ebfa0e3c04d3a0acdf3b3e9f0b7d9c2632a
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=b7fe84c4582a54e098c0f52500d0ed7396026d05
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=ba91d0ad7379fc7b064af911229e50ffa1a16169
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=698ef6bbd9324dbd044903ed0f79020e31d70527
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=2579cb5aeee1ea4572d17672d80afe8ba6a7bd47
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=df7d3fa5002373f7f955219defc7d0bc794a5a6c
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=179ccb9362b7eb2d56412acdf9a281ba495f75b6
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=23843b393e7223cf454f74d7949dc7f4d3ff70d8
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=a2bd04f7318e9935805dba47d71c32e65aa0e4b8
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=e8f8a59660670d22214ecdfdf7014e353c3f56f2
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=c18829a8bf7999ce9b4b6233e343d9aafe7fd11b
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=900090ef9ea8803d44c7711f2aba78ce5d3b7891
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=f3dd71706adf772ae4726fcb73e958339603d53b
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=43ba14bdb34e972a0b72eafeb5d7273ba1fe9837
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=1ecf167cec1696e266de58db6cd904f43c4b532e
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=d13f06193cce07e2ad97070ad32e059d76cac4b7
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=60135a7f83dd87570f3b44d0221a32e169e254c7
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=e2b0f0d8d63e1223bb714a9efb37e2257818268b
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=df6e6b73286dbb2885c68a6c8c1a8bdd1689c880
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=16395e11db17c11a0866b1996cf801e750fcfc95
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=ba1c07d2c49d2504dacbcabb26481527e6c73b9e
+    https://git.kernel.org/pub/scm/bluetooth/bluez.git/commit/?id=b7cb0d3af4c56b6b0223e799c577d2d7265f5805
+Subject: Bluetoothd Crashing with signature - avdtp_abort
+when we use BT Voice remote during/on wake-up from Llama Deep sleep
+Signed-off-by: Chandresh Pitty <Chandresh_Pitty@cable.comcast.com>
+Index: bluez-5.48/profiles/audio/a2dp.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/a2dp.c
++++ bluez-5.48/profiles/audio/a2dp.c
+@@ -105,6 +105,7 @@ struct a2dp_setup {
+ 	gboolean start;
+ 	GSList *cb;
+ 	GIOChannel *io;
++	guint id;
+ 	int ref;
+ };
+ 
+@@ -164,6 +165,9 @@ static void setup_free(struct a2dp_setup
+ 		g_io_channel_unref(s->io);
+ 	}
+ 
++	if (s->id)
++		g_source_remove(s->id);
++
+ 	setups = g_slist_remove(setups, s);
+ 	if (s->session)
+ 		avdtp_unref(s->session);
+@@ -330,7 +334,8 @@ static void finalize_select(struct a2dp_
+ 		if (!cb->select_cb)
+ 			continue;
+ 
+-		cb->select_cb(s->session, s->sep, s->caps, cb->user_data);
++		cb->select_cb(s->session, s->sep, s->caps,
++					error_to_errno(s->err), cb->user_data);
+ 		setup_cb_free(cb);
+ 	}
+ }
+@@ -353,6 +358,41 @@ static void finalize_discover(struct a2d
+ 	}
+ }
+ 
++static gboolean finalize_all(gpointer data)
++{
++	struct a2dp_setup *s = data;
++	struct avdtp_stream *stream = s->err ? NULL : s->stream;
++	GSList *l;
++
++	for (l = s->cb; l != NULL; ) {
++		struct a2dp_setup_cb *cb = l->data;
++
++		l = l->next;
++
++		if (cb->discover_cb) {
++			cb->discover_cb(s->session, s->seps,
++					error_to_errno(s->err), cb->user_data);
++		} else if (cb->select_cb) {
++			cb->select_cb(s->session, s->sep, s->caps,
++					error_to_errno(s->err), cb->user_data);
++		} else if (cb->suspend_cb) {
++			cb->suspend_cb(s->session,
++					error_to_errno(s->err), cb->user_data);
++		} else if (cb->resume_cb) {
++			cb->resume_cb(s->session,
++					error_to_errno(s->err), cb->user_data);
++		} else if (cb->config_cb) {
++			cb->config_cb(s->session, s->sep, stream,
++					error_to_errno(s->err), cb->user_data);
++		} else
++			warn("setup_cb doesn't have any callback function");
++
++		setup_cb_free(cb);
++	}
++
++	return FALSE;
++}
++
+ static struct a2dp_setup *find_setup_by_session(struct avdtp *session)
+ {
+ 	GSList *l;
+@@ -408,7 +448,7 @@ static void stream_state_changed(struct
+ 		int err;
+ 
+ 		setup = find_setup_by_stream(stream);
+-		if (!setup || !setup->start)
++		if (!setup || !setup->start || setup->err)
+ 			return;
+ 
+ 		setup->start = FALSE;
+@@ -550,7 +590,7 @@ static gboolean endpoint_setconf_ind(str
+ 		DBG("Source %p: Set_Configuration_Ind", sep);
+ 
+ 	setup = a2dp_setup_get(session);
+-	if (!session)
++	if (!setup)
+ 		return FALSE;
+ 
+ 	a2dp_sep->stream = stream;
+@@ -653,7 +693,7 @@ static gboolean endpoint_getcap_ind(stru
+ 
+ static void endpoint_open_cb(struct a2dp_setup *setup, gboolean ret)
+ {
+-	int err;
++	int err = error_to_errno(setup->err);
+ 
+ 	if (ret == FALSE) {
+ 		setup->stream = NULL;
+@@ -661,7 +701,9 @@ static void endpoint_open_cb(struct a2dp
+ 		goto done;
+ 	}
+ 
+-	err = avdtp_open(setup->session, setup->stream);
++	if (err == 0)
++		err = avdtp_open(setup->session, setup->stream);
++
+ 	if (err == 0)
+ 		goto done;
+ 
+@@ -1024,6 +1066,11 @@ static gboolean a2dp_reconfigure(gpointe
+ 	struct avdtp_media_codec_capability *rsep_codec;
+ 	struct avdtp_service_capability *cap;
+ 
++	if (setup->err) {
++		posix_err = error_to_errno(setup->err);
++		goto failed;
++	}
++
+ 	if (setup->rsep) {
+ 		cap = avdtp_get_codec(setup->rsep);
+ 		rsep_codec = (struct avdtp_media_codec_capability *) cap->data;
+@@ -1048,6 +1095,20 @@ failed:
+ 	return FALSE;
+ }
+ 
++static bool setup_reconfigure(struct a2dp_setup *setup)
++{
++	if (!setup->reconfigure || setup->id)
++		return false;
++
++	DBG("%p", setup);
++
++	setup->id = g_timeout_add(RECONFIGURE_TIMEOUT, a2dp_reconfigure, setup);
++
++	setup->reconfigure = FALSE;
++
++	return true;
++}
++
+ static void close_cfm(struct avdtp *session, struct avdtp_local_sep *sep,
+ 			struct avdtp_stream *stream, struct avdtp_error *err,
+ 			void *user_data)
+@@ -1074,8 +1135,7 @@ static void close_cfm(struct avdtp *sess
+ 	if (!setup->rsep)
+ 		setup->rsep = avdtp_stream_get_remote_sep(stream);
+ 
+-	if (setup->reconfigure)
+-		g_timeout_add(RECONFIGURE_TIMEOUT, a2dp_reconfigure, setup);
++	setup_reconfigure(setup);
+ }
+ 
+ static void abort_ind(struct avdtp *session, struct avdtp_local_sep *sep,
+@@ -1119,6 +1179,9 @@ static void abort_cfm(struct avdtp *sess
+ 	if (!setup)
+ 		return;
+ 
++	if (setup_reconfigure(setup))
++		return;
++
+ 	setup_unref(setup);
+ }
+ 
+@@ -1301,6 +1364,7 @@ static struct a2dp_server *find_server(G
+ static void channel_free(void *data)
+ {
+ 	struct a2dp_channel *chan = data;
++	struct a2dp_setup *setup;
+ 
+ 	if (chan->auth_id > 0)
+ 		btd_cancel_authorization(chan->auth_id);
+@@ -1315,6 +1379,17 @@ static void channel_free(void *data)
+ 
+ 	avdtp_remove_state_cb(chan->state_id);
+ 
++	setup = find_setup_by_session(chan->session);
++	if (setup) {
++		
++		setup_ref(setup);
++		/* Finalize pending commands before we NULL setup->session */
++		finalize_setup_errno(setup, -ENOTCONN, finalize_all, NULL);
++		avdtp_unref(setup->session);
++		setup->session = NULL;
++		setup_unref(setup);
++	}
++
+ 	g_free(chan);
+ }
+ 
+@@ -1429,7 +1504,7 @@ struct avdtp *a2dp_avdtp_get(struct btd_
+ 	return NULL;
+ 
+ found:
+-	chan->session = avdtp_new(NULL, device, server->seps);
++	chan->session = avdtp_new(chan->io, device, server->seps);
+ 	if (!chan->session) {
+ 		channel_remove(chan);
+ 		return NULL;
+@@ -1447,10 +1522,13 @@ static void connect_cb(GIOChannel *io, G
+ 		goto fail;
+ 	}
+ 
+-	chan->session = avdtp_new(chan->io, chan->device, chan->server->seps);
+ 	if (!chan->session) {
+-		error("Unable to create AVDTP session");
+-		goto fail;
++		chan->session = avdtp_new(chan->io, chan->device,
++							chan->server->seps);
++		if (!chan->session) {
++			error("Unable to create AVDTP session");
++			goto fail;
++		}
+ 	}
+ 
+ 	g_io_channel_unref(chan->io);
+@@ -1494,6 +1572,12 @@ static void transport_cb(GIOChannel *io,
+ 	struct a2dp_setup *setup = user_data;
+ 	uint16_t omtu, imtu;
+ 
++	if (!g_slist_find(setups, setup)) {
++		warn("bt_io_accept: setup %p no longer valid", setup);
++		g_io_channel_shutdown(io, TRUE, NULL);
++		return;
++	}
++
+ 	if (err) {
+ 		error("%s", err->message);
+ 		goto drop;
+@@ -1809,6 +1893,9 @@ static void select_cb(struct a2dp_setup
+ 	struct avdtp_service_capability *media_transport, *media_codec;
+ 	struct avdtp_media_codec_capability *cap;
+ 
++	if (setup->err)
++		goto done;
++
+ 	if (size < 0) {
+ 		DBG("Endpoint replied an invalid configuration");
+ 		goto done;
+@@ -1892,7 +1979,8 @@ static void discover_cb(struct avdtp *se
+ 	DBG("err %p", err);
+ 
+ 	setup->seps = seps;
+-	setup->err = err;
++	if (err)
++		setup->err = err;
+ 
+ 	finalize_discover(setup);
+ }
+@@ -2549,4 +2637,4 @@ static void a2dp_exit(void)
+ }
+ 
+ BLUETOOTH_PLUGIN_DEFINE(a2dp, VERSION, BLUETOOTH_PLUGIN_PRIORITY_DEFAULT,
+-							a2dp_init, a2dp_exit)
++		a2dp_init, a2dp_exit)
+Index: bluez-5.48/profiles/audio/a2dp.h
+===================================================================
+--- bluez-5.48.orig/profiles/audio/a2dp.h
++++ bluez-5.48/profiles/audio/a2dp.h
+@@ -54,8 +54,8 @@ struct a2dp_endpoint {
+ 
+ typedef void (*a2dp_discover_cb_t) (struct avdtp *session, GSList *seps,
+ 						int err, void *user_data);
+-typedef void (*a2dp_select_cb_t) (struct avdtp *session,
+-					struct a2dp_sep *sep, GSList *caps,
++typedef void (*a2dp_select_cb_t) (struct avdtp *session, struct a2dp_sep *sep,
++					GSList *caps, int err,
+ 					void *user_data);
+ typedef void (*a2dp_config_cb_t) (struct avdtp *session, struct a2dp_sep *sep,
+ 					struct avdtp_stream *stream, int err,
+Index: bluez-5.48/profiles/audio/avctp.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/avctp.c
++++ bluez-5.48/profiles/audio/avctp.c
+@@ -549,9 +549,9 @@ static void avctp_channel_destroy(struct
+ 		chan->destroy(chan);
+ 
+ 	g_free(chan->buffer);
+-	g_slist_free_full(chan->queues, avctp_queue_destroy);
+ 	g_slist_foreach(chan->processed, pending_destroy, NULL);
+ 	g_slist_free(chan->processed);
++	g_slist_free_full(chan->queues, avctp_queue_destroy);
+ 	g_slist_free_full(chan->handlers, g_free);
+ 	g_free(chan);
+ }
+@@ -1367,7 +1367,7 @@ static void avctp_connect_cb(GIOChannel
+ 	bt_io_get(chan, &gerr,
+ 			BT_IO_OPT_DEST, &address,
+ 			BT_IO_OPT_IMTU, &imtu,
+-			BT_IO_OPT_IMTU, &omtu,
++			BT_IO_OPT_OMTU, &omtu,
+ 			BT_IO_OPT_INVALID);
+ 	if (gerr) {
+ 		avctp_set_state(session, AVCTP_STATE_DISCONNECTED, -EIO);
+@@ -1534,6 +1534,8 @@ static void avctp_browsing_confirm(struc
+ 	if (bt_io_accept(chan, avctp_connect_browsing_cb, session, NULL,
+ 								&err)) {
+ 		avctp_set_state(session, AVCTP_STATE_BROWSING_CONNECTING, 0);
++		session->browsing = avctp_channel_create(session, chan, 1,
++							avctp_destroy_browsing);
+ 		return;
+ 	}
+ 
+Index: bluez-5.48/profiles/audio/avdtp.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/avdtp.c
++++ bluez-5.48/profiles/audio/avdtp.c
+@@ -401,6 +401,7 @@ struct avdtp {
+ 
+ 	struct avdtp_stream *pending_open;
+ 
++	uint32_t phy;
+ 	uint16_t imtu;
+ 	uint16_t omtu;
+ 
+@@ -412,6 +413,7 @@ struct avdtp {
+ 	struct pending_req *req;
+ 
+ 	guint dc_timer;
++	int dc_timeout;
+ 
+ 	/* Attempt stream setup instead of disconnecting */
+ 	gboolean stream_setup;
+@@ -1061,9 +1063,15 @@ static void sep_free(gpointer data)
+ 
+ static void remove_disconnect_timer(struct avdtp *session)
+ {
++	if (!session->dc_timer)
++		return;
++
+ 	g_source_remove(session->dc_timer);
+ 	session->dc_timer = 0;
+ 	session->stream_setup = FALSE;
++
++	/* Release disconnect timer reference */
++	avdtp_unref(session);
+ }
+ 
+ static void avdtp_free(void *data)
+@@ -1084,9 +1092,6 @@ static void avdtp_free(void *data)
+ 		session->io_id = 0;
+ 	}
+ 
+-	if (session->dc_timer)
+-		remove_disconnect_timer(session);
+-
+ 	if (session->req)
+ 		pending_req_free(session->req);
+ 
+@@ -1133,29 +1138,35 @@ static gboolean disconnect_timeout(gpoin
+ 	service = btd_device_get_service(session->device, A2DP_SINK_UUID);
+ 	if (service && stream_setup) {
+ 		sink_setup_stream(service, session);
+-		return FALSE;
++		goto done;
+ 	}
+ 
+ 	service = btd_device_get_service(session->device, A2DP_SOURCE_UUID);
+ 	if (service && stream_setup) {
+ 		source_setup_stream(service, session);
+-		return FALSE;
++		goto done;
+ 	}
+ 
+ 	connection_lost(session, ETIMEDOUT);
+ 
++done:
++	/* Release disconnect timer reference */
++	avdtp_unref(session);
++
+ 	return FALSE;
+ }
+ 
+ static void set_disconnect_timer(struct avdtp *session)
+ {
+-	if (session->dc_timer)
+-		remove_disconnect_timer(session);
++	/* Take a ref while disconnect timer is active */
++	avdtp_ref(session);
++
++	DBG("timeout %d", session->dc_timeout);
+ 
+-	if (!session->stream_setup && !session->streams)
++	if (!session->dc_timeout)
+ 		session->dc_timer = g_idle_add(disconnect_timeout, session);
+ 	else
+-		session->dc_timer = g_timeout_add_seconds(DISCONNECT_TIMEOUT,
++		session->dc_timer = g_timeout_add_seconds(session->dc_timeout,
+ 							disconnect_timeout,
+ 							session);
+ }
+@@ -1174,7 +1185,13 @@ void avdtp_unref(struct avdtp *session)
+ 
+ 	switch (session->state) {
+ 	case AVDTP_SESSION_STATE_CONNECTED:
+-		set_disconnect_timer(session);
++		/* Only set disconnect timer if there are local endpoints
++		 * otherwise disconnect immediately.
++		 */
++		if (queue_isempty(session->lseps))
++			connection_lost(session, ECONNRESET);
++		else
++			set_disconnect_timer(session);
+ 		break;
+ 	case AVDTP_SESSION_STATE_CONNECTING:
+ 		connection_lost(session, ECONNABORTED);
+@@ -1190,8 +1207,7 @@ struct avdtp *avdtp_ref(struct avdtp *se
+ {
+ 	session->ref++;
+ 	DBG("%p: ref=%d", session, session->ref);
+-	if (session->dc_timer)
+-		remove_disconnect_timer(session);
++	remove_disconnect_timer(session);
+ 	return session;
+ }
+ 
+@@ -1676,7 +1692,7 @@ static gboolean avdtp_open_cmd(struct av
+ 
+ 	stream = sep->stream;
+ 
+-	if (sep->ind && sep->ind->open) {
++	if (sep->ind && sep->ind->open && !session->pending_open) {
+ 		if (!sep->ind->open(session, sep, stream, &err,
+ 					sep->user_data))
+ 			goto failed;
+@@ -1688,11 +1704,13 @@ static gboolean avdtp_open_cmd(struct av
+ 						AVDTP_OPEN, NULL, 0))
+ 		return FALSE;
+ 
+-	stream->open_acp = TRUE;
+-	session->pending_open = stream;
+-	stream->timer = g_timeout_add_seconds(REQ_TIMEOUT,
++	if (!session->pending_open) {
++		stream->open_acp = TRUE;
++		session->pending_open = stream;
++		stream->timer = g_timeout_add_seconds(REQ_TIMEOUT,
+ 						stream_open_timeout,
+ 						stream);
++	}
+ 
+ 	return TRUE;
+ 
+@@ -1797,6 +1815,8 @@ static gboolean avdtp_close_cmd(struct a
+ 
+ 	avdtp_sep_set_state(session, sep, AVDTP_STATE_CLOSING);
+ 
++	session->dc_timeout = DISCONNECT_TIMEOUT;
++
+ 	if (!avdtp_send(session, transaction, AVDTP_MSG_TYPE_ACCEPT,
+ 						AVDTP_CLOSE, NULL, 0))
+ 		return FALSE;
+@@ -1893,8 +1913,10 @@ static gboolean avdtp_abort_cmd(struct a
+ 
+ 	ret = avdtp_send(session, transaction, AVDTP_MSG_TYPE_ACCEPT,
+ 						AVDTP_ABORT, NULL, 0);
+-	if (ret)
++	if (ret) {
+ 		avdtp_sep_set_state(session, sep, AVDTP_STATE_ABORTING);
++		session->dc_timeout = DISCONNECT_TIMEOUT;
++	}
+ 
+ 	return ret;
+ }
+@@ -1928,6 +1950,7 @@ static gboolean avdtp_delayreport_cmd(st
+ 	stream = sep->stream;
+ 
+ 	if (sep->state != AVDTP_STATE_CONFIGURED &&
++					sep->state != AVDTP_STATE_OPEN &&
+ 					sep->state != AVDTP_STATE_STREAMING) {
+ 		err = AVDTP_BAD_STATE;
+ 		goto failed;
+@@ -2284,6 +2307,9 @@ static void avdtp_connect_cb(GIOChannel
+ 	if (!session->io)
+ 		session->io = g_io_channel_ref(chan);
+ 
++	/* Check if kernel supports reading packet types */
++	bt_io_get(chan, NULL, BT_IO_OPT_PHY, &session->phy, BT_IO_OPT_INVALID);
++
+ 	bt_io_get(chan, &err,
+ 			BT_IO_OPT_OMTU, &session->omtu,
+ 			BT_IO_OPT_IMTU, &session->imtu,
+@@ -2308,19 +2334,10 @@ static void avdtp_connect_cb(GIOChannel
+ 		if (session->io_id)
+ 			g_source_remove(session->io_id);
+ 
+-		/* This watch should be low priority since otherwise the
+-		 * connect callback might be dispatched before the session
+-		 * callback if the kernel wakes us up at the same time for
+-		 * them. This could happen if a headset is very quick in
+-		 * sending the Start command after connecting the stream
+-		 * transport channel.
+-		 */
+-		session->io_id = g_io_add_watch_full(chan,
+-						G_PRIORITY_LOW,
++		session->io_id = g_io_add_watch(chan,
+ 						G_IO_IN | G_IO_ERR | G_IO_HUP
+ 						| G_IO_NVAL,
+-						(GIOFunc) session_cb, session,
+-						NULL);
++						(GIOFunc) session_cb, session);
+ 
+ 		if (session->stream_setup)
+ 			set_disconnect_timer(session);
+@@ -2377,6 +2394,8 @@ struct avdtp *avdtp_new(GIOChannel *chan
+ 	 * with respect to the disconnect timer */
+ 	session->stream_setup = TRUE;
+ 
++	session->dc_timeout = DISCONNECT_TIMEOUT;
++
+ 	avdtp_connect_cb(chan, NULL, session);
+ 
+ 	return session;
+@@ -2390,14 +2409,26 @@ static GIOChannel *l2cap_connect(struct
+ 
+ 	src = btd_adapter_get_address(device_get_adapter(session->device));
+ 
+-	io = bt_io_connect(avdtp_connect_cb, session,
+-				NULL, &err,
+-				BT_IO_OPT_SOURCE_BDADDR, src,
+-				BT_IO_OPT_DEST_BDADDR,
+-				device_get_address(session->device),
+-				BT_IO_OPT_PSM, AVDTP_PSM,
+-				BT_IO_OPT_SEC_LEVEL, BT_IO_SEC_MEDIUM,
+-				BT_IO_OPT_INVALID);
++	if (session->phy)
++		io = bt_io_connect(avdtp_connect_cb, session,
++					NULL, &err,
++					BT_IO_OPT_SOURCE_BDADDR, src,
++					BT_IO_OPT_DEST_BDADDR,
++					device_get_address(session->device),
++					BT_IO_OPT_PSM, AVDTP_PSM,
++					BT_IO_OPT_SEC_LEVEL, BT_IO_SEC_MEDIUM,
++					/* Set Input MTU to 0 to auto-tune */
++					BT_IO_OPT_IMTU, 0,
++					BT_IO_OPT_INVALID);
++	else
++		io = bt_io_connect(avdtp_connect_cb, session,
++					NULL, &err,
++					BT_IO_OPT_SOURCE_BDADDR, src,
++					BT_IO_OPT_DEST_BDADDR,
++					device_get_address(session->device),
++					BT_IO_OPT_PSM, AVDTP_PSM,
++					BT_IO_OPT_SEC_LEVEL, BT_IO_SEC_MEDIUM,
++					BT_IO_OPT_INVALID);
+ 	if (!io) {
+ 		error("%s", err->message);
+ 		g_error_free(err);
+@@ -2545,6 +2576,11 @@ static int send_req(struct avdtp *sessio
+ 	if (session->state == AVDTP_SESSION_STATE_DISCONNECTED) {
+ 		session->io = l2cap_connect(session);
+ 		if (!session->io) {
++			/* Report disconnection anyways, as the other layers
++			 * are using this state for cleanup.
++			 */
++			avdtp_set_state(session,
++					AVDTP_SESSION_STATE_DISCONNECTED);
+ 			err = -EIO;
+ 			goto failed;
+ 		}
+@@ -3357,6 +3393,7 @@ int avdtp_set_configuration(struct avdtp
+ 		session->streams = g_slist_append(session->streams, new_stream);
+ 		if (stream)
+ 			*stream = new_stream;
++		session->dc_timeout = DISCONNECT_TIMEOUT;
+ 	}
+ 
+ 	g_free(req);
+@@ -3468,8 +3505,10 @@ int avdtp_close(struct avdtp *session, s
+ 
+ 	ret = send_request(session, FALSE, stream, AVDTP_CLOSE,
+ 							&req, sizeof(req));
+-	if (ret == 0)
++	if (ret == 0) {
+ 		stream->close_int = TRUE;
++		session->dc_timeout = 0;
++	}
+ 
+ 	return ret;
+ }
+@@ -3495,7 +3534,6 @@ int avdtp_abort(struct avdtp *session, s
+ {
+ 	struct seid_req req;
+ 	int ret;
+-	struct avdtp_local_sep *sep = stream->lsep;
+ 
+ 	if (!stream && session->discover) {
+ 		/* Don't call cb since it being aborted */
+@@ -3510,7 +3548,7 @@ int avdtp_abort(struct avdtp *session, s
+ 	if (stream->lsep->state == AVDTP_STATE_ABORTING)
+ 		return -EINVAL;
+ 
+-	avdtp_sep_set_state(session, sep, AVDTP_STATE_ABORTING);
++	avdtp_sep_set_state(session, stream->lsep, AVDTP_STATE_ABORTING);
+ 
+ 	if (session->req && stream == session->req->stream)
+ 		return cancel_request(session, ECANCELED);
+@@ -3520,8 +3558,10 @@ int avdtp_abort(struct avdtp *session, s
+ 
+ 	ret = send_request(session, TRUE, stream, AVDTP_ABORT,
+ 							&req, sizeof(req));
+-	if (ret == 0)
++	if (ret == 0) {
+ 		stream->abort_int = TRUE;
++		session->dc_timeout = 0;
++	}
+ 
+ 	return ret;
+ }
+@@ -3658,11 +3698,17 @@ avdtp_state_t avdtp_sep_get_state(struct
+ 
+ struct btd_adapter *avdtp_get_adapter(struct avdtp *session)
+ {
++	if (!session)
++		return NULL;
++
+ 	return device_get_adapter(session->device);
+ }
+ 
+ struct btd_device *avdtp_get_device(struct avdtp *session)
+ {
++	if (!session)
++		return NULL;
++
+ 	return session->device;
+ }
+ 
+Index: bluez-5.48/profiles/audio/avrcp.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/avrcp.c
++++ bluez-5.48/profiles/audio/avrcp.c
+@@ -1724,6 +1724,12 @@ static gboolean notify_addressed_player_
+ 				};
+ 	uint8_t i;
+ 
++	/*
++	 * Set changed_id to an non-zero value to indicate addreddsed player
++	 * changed.
++	 */
++	player->changed_id = 1;
++
+ 	avrcp_player_event(player, AVRCP_EVENT_ADDRESSED_PLAYER_CHANGED, NULL);
+ 
+ 	/*
+@@ -1844,6 +1850,14 @@ static size_t handle_vendordep_pdu(struc
+ 		goto err_metadata;
+ 	}
+ 
++	operands += sizeof(*pdu);
++	operand_count -= sizeof(*pdu);
++
++	if (pdu->params_len != operand_count) {
++		DBG("AVRCP PDU parameters length don't match");
++		pdu->params_len = operand_count;
++	}
++
+ 	for (handler = session->control_handlers; handler->pdu_id; handler++) {
+ 		if (handler->pdu_id == pdu->pdu_id)
+ 			break;
+@@ -2222,7 +2236,7 @@ static gboolean avrcp_list_player_attrib
+ 	uint8_t len, count = 0;
+ 	int i;
+ 
+-	if (code == AVC_CTYPE_REJECTED)
++	if (code == AVC_CTYPE_REJECTED || code == AVC_CTYPE_NOT_IMPLEMENTED)
+ 		return FALSE;
+ 
+ 	len = pdu->params[0];
+@@ -3549,12 +3563,11 @@ static void avrcp_volume_changed(struct
+ 
+ 	volume = pdu->params[1] & 0x7F;
+ 
++	/* Always attempt to update the transport volume */
+ 	media_transport_update_device_volume(session->dev, volume);
+ 
+-	if (!player)
+-		return;
+-
+-	player->cb->set_volume(volume, session->dev, player->user_data);
++	if (player)
++		player->cb->set_volume(volume, session->dev, player->user_data);
+ }
+ 
+ static void avrcp_status_changed(struct avrcp *session,
+@@ -3815,7 +3828,12 @@ static gboolean avrcp_get_capabilities_r
+ 	if (!session->controller || !session->controller->player)
+ 		return FALSE;
+ 
+-	if (!(events & (1 << AVRCP_EVENT_SETTINGS_CHANGED)))
++	/* Skip if player status/metadata if only volume changes is supported */
++	if (events == (1 << AVRCP_EVENT_VOLUME_CHANGED))
++		return FALSE;
++
++	if ((session->controller->features & AVRCP_FEATURE_PLAYER_SETTINGS) &&
++			!(events & (1 << AVRCP_EVENT_SETTINGS_CHANGED)))
+ 		avrcp_list_player_attributes(session);
+ 
+ 	if (!(events & (1 << AVRCP_EVENT_STATUS_CHANGED)))
+@@ -4271,8 +4289,16 @@ void avrcp_unregister_player(struct avrc
+ 		if (target == NULL)
+ 			continue;
+ 
+-		if (target->player == player)
+-			target->player = g_slist_nth_data(server->players, 0);
++		if (target->player != player)
++			continue;
++
++		target->player = g_slist_nth_data(server->players, 0);
++		if (target->player) {
++			target->player->sessions = g_slist_append(
++						target->player->sessions,
++						session);
++			notify_addressed_player_changed(player);
++		}
+ 	}
+ 
+ 	avrcp_player_event(player,
+@@ -4297,6 +4323,9 @@ static gboolean avrcp_handle_set_volume(
+ 
+ 	volume = pdu->params[0] & 0x7F;
+ 
++	/* Always attempt to update the transport volume */
++	media_transport_update_device_volume(session->dev, volume);
++
+ 	if (player != NULL)
+ 		player->cb->set_volume(volume, session->dev, player->user_data);
+ 
+@@ -4349,6 +4378,11 @@ static int avrcp_event(struct avrcp *ses
+ 	return err;
+ }
+ 
++static bool avrcp_event_registered(struct avrcp *session, uint8_t event)
++{
++	return session->registered_events & (1 << event);
++}
++
+ int avrcp_set_volume(struct btd_device *dev, uint8_t volume, bool notify)
+ {
+ 	struct avrcp_server *server;
+@@ -4371,7 +4405,8 @@ int avrcp_set_volume(struct btd_device *
+ 								&volume);
+ 	}
+ 
+-	if (!session->controller || session->controller->version < 0x0104)
++	if (!session->controller && !avrcp_event_registered(session,
++					AVRCP_EVENT_VOLUME_CHANGED))
+ 		return -ENOTSUP;
+ 
+ 	memset(buf, 0, sizeof(buf));
+Index: bluez-5.48/profiles/audio/media.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/media.c
++++ bluez-5.48/profiles/audio/media.c
+@@ -1175,27 +1175,11 @@ static uint32_t get_duration(void *user_
+ static void set_volume(uint8_t volume, struct btd_device *dev, void *user_data)
+ {
+ 	struct media_player *mp = user_data;
+-	GSList *l;
+ 
+ 	if (mp->volume == volume)
+ 		return;
+ 
+ 	mp->volume = volume;
+-
+-	for (l = mp->adapter->endpoints; l; l = l->next) {
+-		struct media_endpoint *endpoint = l->data;
+-		struct media_transport *transport;
+-
+-		/* Volume is A2DP only */
+-		if (endpoint->sep == NULL)
+-			continue;
+-
+-		transport = find_device_transport(endpoint, dev);
+-		if (transport == NULL)
+-			continue;
+-
+-		media_transport_update_volume(transport, volume);
+-	}
+ }
+ 
+ static bool media_player_send(struct media_player *mp, const char *name)
+Index: bluez-5.48/profiles/audio/sink.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/sink.c
++++ bluez-5.48/profiles/audio/sink.c
+@@ -196,13 +196,16 @@ static void stream_setup_complete(struct
+ }
+ 
+ static void select_complete(struct avdtp *session, struct a2dp_sep *sep,
+-			GSList *caps, void *user_data)
++			GSList *caps, int err, void *user_data)
+ {
+ 	struct sink *sink = user_data;
+ 	int id;
+ 
+ 	sink->connect_id = 0;
+ 
++	if (err)
++		goto failed;
++
+ 	id = a2dp_config(session, sep, stream_setup_complete, caps, sink);
+ 	if (id == 0)
+ 		goto failed;
+@@ -256,16 +259,26 @@ gboolean sink_setup_stream(struct btd_se
+ 	if (sink->connect_id > 0 || sink->disconnect_id > 0)
+ 		return FALSE;
+ 
+-	if (session && !sink->session)
+-		sink->session = avdtp_ref(session);
+-
+-	if (!sink->session)
+-		return FALSE;
++	if (!sink->session) {
++		if (session)
++			sink->session = avdtp_ref(session);
++		else
++			sink->session = a2dp_avdtp_get(
++					btd_service_get_device(service));
++
++		if (!sink->session) {
++			DBG("Unable to get a session");
++			return FALSE;
++		}
++	}
+ 
+ 	sink->connect_id = a2dp_discover(sink->session, discovery_complete,
+ 								sink);
+-	if (sink->connect_id == 0)
++	if (sink->connect_id == 0) {
++		avdtp_unref(sink->session);
++		sink->session = NULL;
+ 		return FALSE;
++	}
+ 
+ 	return TRUE;
+ }
+@@ -274,14 +287,6 @@ int sink_connect(struct btd_service *ser
+ {
+ 	struct sink *sink = btd_service_get_user_data(service);
+ 
+-	if (!sink->session)
+-		sink->session = a2dp_avdtp_get(btd_service_get_device(service));
+-
+-	if (!sink->session) {
+-		DBG("Unable to get a session");
+-		return -EIO;
+-	}
+-
+ 	if (sink->connect_id > 0 || sink->disconnect_id > 0)
+ 		return -EBUSY;
+ 
+Index: bluez-5.48/profiles/audio/source.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/source.c
++++ bluez-5.48/profiles/audio/source.c
+@@ -193,13 +193,16 @@ static void stream_setup_complete(struct
+ }
+ 
+ static void select_complete(struct avdtp *session, struct a2dp_sep *sep,
+-			GSList *caps, void *user_data)
++			GSList *caps, int err, void *user_data)
+ {
+ 	struct source *source = user_data;
+ 	int id;
+ 
+ 	source->connect_id = 0;
+ 
++	if (err)
++		goto failed;
++
+ 	if (caps == NULL)
+ 		goto failed;
+ 
+@@ -257,16 +260,26 @@ gboolean source_setup_stream(struct btd_
+ 	if (source->connect_id > 0 || source->disconnect_id > 0)
+ 		return FALSE;
+ 
+-	if (session && !source->session)
+-		source->session = avdtp_ref(session);
+-
+-	if (!source->session)
+-		return FALSE;
++	if (!source->session) {
++		if (session)
++			source->session = avdtp_ref(session);
++		else
++			source->session = a2dp_avdtp_get(
++					btd_service_get_device(service));
++
++		if (!source->session) {
++			DBG("Unable to get a session");
++			return FALSE;
++		}
++	}
+ 
+ 	source->connect_id = a2dp_discover(source->session, discovery_complete,
+ 								source);
+-	if (source->connect_id == 0)
++	if (source->connect_id == 0) {
++		avdtp_unref(source->session);
++		source->session = NULL;
+ 		return FALSE;
++	}
+ 
+ 	return TRUE;
+ }
+@@ -275,14 +288,6 @@ int source_connect(struct btd_service *s
+ {
+ 	struct source *source = btd_service_get_user_data(service);
+ 
+-	if (!source->session)
+-		source->session = a2dp_avdtp_get(btd_service_get_device(service));
+-
+-	if (!source->session) {
+-		DBG("Unable to get a session");
+-		return -EIO;
+-	}
+-
+ 	if (source->connect_id > 0 || source->disconnect_id > 0)
+ 		return -EBUSY;
+ 
+Index: bluez-5.48/btio/btio.c
+===================================================================
+--- bluez-5.48.orig/btio/btio.c
++++ bluez-5.48/btio/btio.c
+@@ -881,6 +881,7 @@ static gboolean parse_set_opts(struct se
+ 		case BT_IO_OPT_DEST_CHANNEL:
+ 		case BT_IO_OPT_HANDLE:
+ 		case BT_IO_OPT_CLASS:
++		case BT_IO_OPT_PHY:
+ 		default:
+ 			g_set_error(err, BT_IO_ERROR, EINVAL,
+ 					"Unknown option %d", opt);
+@@ -968,6 +969,17 @@ static int get_priority(int sock, uint32
+ 	return 0;
+ }
+ 
++static int get_phy(int sock, uint32_t *phy)
++{
++	socklen_t len;
++
++	len = sizeof(*phy);
++	if (getsockopt(sock, SOL_BLUETOOTH, BT_PHY, phy, &len) < 0)
++		return -errno;
++
++	return 0;
++}
++
+ static gboolean l2cap_get(int sock, GError **err, BtIOOption opt1,
+ 								va_list args)
+ {
+@@ -979,7 +991,7 @@ static gboolean l2cap_get(int sock, GErr
+ 	uint16_t handle = 0;
+ 	socklen_t len;
+ 	gboolean flushable = FALSE, have_dst = FALSE;
+-	uint32_t priority;
++	uint32_t priority, phy;
+ 
+ 	if (!get_src(sock, &src, sizeof(src), err))
+ 		return FALSE;
+@@ -1147,6 +1159,13 @@ parse_opts:
+ 			}
+ 			*(va_arg(args, uint32_t *)) = priority;
+ 			break;
++		case BT_IO_OPT_PHY:
++			if (get_phy(sock, &phy) < 0) {
++				ERROR_FAILED(err, "get_phy", errno);
++				return FALSE;
++			}
++			*(va_arg(args, uint32_t *)) = phy;
++			break;
+ 		case BT_IO_OPT_INVALID:
+ 		case BT_IO_OPT_SOURCE_TYPE:
+ 		case BT_IO_OPT_CHANNEL:
+@@ -1194,6 +1213,7 @@ static gboolean rfcomm_get(int sock, GEr
+ 	socklen_t len;
+ 	uint8_t dev_class[3];
+ 	uint16_t handle = 0;
++	uint32_t phy;
+ 
+ 	if (!get_src(sock, &src, sizeof(src), err))
+ 		return FALSE;
+@@ -1287,6 +1307,13 @@ static gboolean rfcomm_get(int sock, GEr
+ 			}
+ 			memcpy(va_arg(args, uint8_t *), dev_class, 3);
+ 			break;
++		case BT_IO_OPT_PHY:
++			if (get_phy(sock, &phy) < 0) {
++				ERROR_FAILED(err, "get_phy", errno);
++				return FALSE;
++			}
++			*(va_arg(args, uint32_t *)) = phy;
++			break;
+ 		case BT_IO_OPT_SOURCE_TYPE:
+ 		case BT_IO_OPT_DEST_TYPE:
+ 		case BT_IO_OPT_KEY_SIZE:
+@@ -1338,6 +1365,7 @@ static gboolean sco_get(int sock, GError
+ 	socklen_t len;
+ 	uint8_t dev_class[3];
+ 	uint16_t handle = 0;
++	uint32_t phy;
+ 
+ 	len = sizeof(sco_opt);
+ 	memset(&sco_opt, 0, len);
+@@ -1385,6 +1413,13 @@ static gboolean sco_get(int sock, GError
+ 			}
+ 			memcpy(va_arg(args, uint8_t *), dev_class, 3);
+ 			break;
++		case BT_IO_OPT_PHY:
++			if (get_phy(sock, &phy) < 0) {
++				ERROR_FAILED(err, "get_phy", errno);
++				return FALSE;
++			}
++			*(va_arg(args, uint32_t *)) = phy;
++			break;
+ 		case BT_IO_OPT_SOURCE_TYPE:
+ 		case BT_IO_OPT_DEST_TYPE:
+ 		case BT_IO_OPT_DEFER_TIMEOUT:
+Index: bluez-5.48/btio/btio.h
+===================================================================
+--- bluez-5.48.orig/btio/btio.h
++++ bluez-5.48/btio/btio.h
+@@ -56,6 +56,7 @@ typedef enum {
+ 	BT_IO_OPT_FLUSHABLE,
+ 	BT_IO_OPT_PRIORITY,
+ 	BT_IO_OPT_VOICE,
++	BT_IO_OPT_PHY,
+ } BtIOOption;
+ 
+ typedef enum {
+Index: bluez-5.48/lib/bluetooth.h
+===================================================================
+--- bluez-5.48.orig/lib/bluetooth.h
++++ bluez-5.48/lib/bluetooth.h
+@@ -123,6 +123,24 @@ struct bt_voice {
+ #define BT_VOICE_TRANSPARENT			0x0003
+ #define BT_VOICE_CVSD_16BIT			0x0060
+ 
++#define BT_PHY			14
++
++#define BT_PHY_BR_1M_1SLOT	0x00000001
++#define BT_PHY_BR_1M_3SLOT	0x00000002
++#define BT_PHY_BR_1M_5SLOT	0x00000004
++#define BT_PHY_EDR_2M_1SLOT	0x00000008
++#define BT_PHY_EDR_2M_3SLOT	0x00000010
++#define BT_PHY_EDR_2M_5SLOT	0x00000020
++#define BT_PHY_EDR_3M_1SLOT	0x00000040
++#define BT_PHY_EDR_3M_3SLOT	0x00000080
++#define BT_PHY_EDR_3M_5SLOT	0x00000100
++#define BT_PHY_LE_1M_TX		0x00000200
++#define BT_PHY_LE_1M_RX		0x00000400
++#define BT_PHY_LE_2M_TX		0x00000800
++#define BT_PHY_LE_2M_RX		0x00001000
++#define BT_PHY_LE_CODED_TX	0x00002000
++#define BT_PHY_LE_CODED_RX	0x00004000
++
+ /* Connection and socket states */
+ enum {
+ 	BT_CONNECTED = 1, /* Equal to TCP_ESTABLISHED to make net code happy */

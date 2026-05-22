@@ -1,0 +1,18 @@
+Date: Dec 13, 2022
+From: Praveen praveenraj.gopalakrishnan@sky.uk
+Source: COMCAST
+Subject: bluez security enable to true
+Signed-off-by: Praveen praveenraj.gopalakrishnan@sky.uk
+Index: bluez-5.48/src/main.conf
+===================================================================
+--- bluez-5.48.orig/src/main.conf
++++ bluez-5.48/src/main.conf
+@@ -111,7 +111,7 @@
+ # Enables or disables bluetooth LE "Secure Connections".  This is a BT 4.1
+ # feature used at pairing time, ideally it should be enabled but can cause
+ # interopt issues with some BLE devices. Defaults to 'true'.
+-# SecureConnections = true
++SecureConnections = true
+ 
+ # Sets whether the adapter should be powered off at start-up if already powered
+ # on.  This is useful to reset the adapter and therefore have the kernel and

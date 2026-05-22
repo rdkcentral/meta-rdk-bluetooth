@@ -1,0 +1,116 @@
+Date: May 2, 2024
+From: ssimga507 <srikanth_Simgamsetti@comcast.com>
+Source: COMCAST
+Subject: Fixed for observed bluetooth queue_remove crash
+Signed-off-by: ssimga507 <srikanth_Simgamsetti@comcast.com>
+Index: bluez-5.48/src/gatt-database.c
+===================================================================
+--- bluez-5.48.orig/src/gatt-database.c
++++ bluez-5.48/src/gatt-database.c
+@@ -1987,6 +1987,11 @@ static void acquire_write_reply(DBusMess
+ 	int fd;
+ 	uint16_t mtu;
+ 
++        if (!op->owner_queue) {
++            DBG("Pending write was canceled when object got removed");
++            return;
++        }
++
+ 	chrc = gatt_db_attribute_get_user_data(op->attrib);
+ 	dbus_error_init(&err);
+ 
+Index: bluez-5.48/src/shared/att.c
+===================================================================
+--- bluez-5.48.orig/src/shared/att.c
++++ bluez-5.48/src/shared/att.c
+@@ -976,6 +976,12 @@ static void bt_att_free(struct bt_att *a
+ 	queue_destroy(att->notify_list, NULL);
+ 	queue_destroy(att->disconn_list, NULL);
+ 
++        att->req_queue = NULL;
++        att->ind_queue = NULL;
++        att->write_queue = NULL;
++        att->notify_list = NULL;
++        att->disconn_list = NULL;
++
+ 	if (att->timeout_destroy)
+ 		att->timeout_destroy(att->timeout_data);
+ 
+@@ -985,7 +991,11 @@ static void bt_att_free(struct bt_att *a
+ 	free(att->local_sign);
+ 	free(att->remote_sign);
+ 
++        att->local_sign = NULL;
++        att->remote_sign = NULL;
++
+ 	free(att->buf);
++        att->buf= NULL;
+ 
+ 	free(att);
+ }
+Index: bluez-5.48/src/shared/gatt-client.c
+===================================================================
+--- bluez-5.48.orig/src/shared/gatt-client.c
++++ bluez-5.48/src/shared/gatt-client.c
+@@ -344,6 +344,11 @@ static void discovery_op_free(struct dis
+ 	queue_destroy(op->pending_svcs, NULL);
+ 	queue_destroy(op->pending_chrcs, free);
+ 	queue_destroy(op->ext_prop_desc, NULL);
++
++        op->pending_svcs = NULL;
++        op->pending_chrcs = NULL;
++        op->ext_prop_desc = NULL;
++
+ 	free(op);
+ }
+ 
+@@ -1272,8 +1277,8 @@ static void enable_ccc_callback(uint8_t
+ 					uint16_t length, void *user_data)
+ {
+ 	struct notify_data *notify_data = user_data;
+-	struct bt_gatt_client *client;
+-	struct notify_chrc *chrc;
++	struct bt_gatt_client *client = NULL;
++	struct notify_chrc *chrc = NULL;
+ 	uint8_t att_ecode;
+ 
+ 	assert(notify_data->chrc->ccc_write_id);
+@@ -1304,7 +1309,7 @@ static void enable_ccc_callback(uint8_t
+ 							enable_ccc_callback))
+ 				return;
+ 		}
+-
++                notify_data = NULL;
+ 		return;
+ 	}
+ 
+@@ -1773,9 +1778,14 @@ static void bt_gatt_client_free(struct b
+ {
+ 	bt_gatt_client_cancel_all(client);
+ 
++        queue_destroy(client->notify_chrcs, notify_chrc_free);
++        client->notify_chrcs = NULL;
++
+ 	queue_destroy(client->notify_list, notify_data_cleanup);
++        client->notify_list = NULL;
+ 
+ 	queue_destroy(client->ready_cbs, ready_destroy);
++        client->ready_cbs = NULL;
+ 
+ 	if (client->debug_destroy)
+ 		client->debug_destroy(client->debug_data);
+@@ -1792,9 +1802,13 @@ static void bt_gatt_client_free(struct b
+ 	queue_destroy(client->clones, NULL);
+ 	queue_destroy(client->svc_chngd_queue, free);
+ 	queue_destroy(client->long_write_queue, request_unref);
+-	queue_destroy(client->notify_chrcs, notify_chrc_free);
+ 	queue_destroy(client->pending_requests, request_unref);
+ 
++        client->clones = NULL;
++        client->svc_chngd_queue = NULL;
++        client->long_write_queue = NULL;
++        client->pending_requests = NULL;
++
+ 	if (client->parent) {
+ 		queue_remove(client->parent->clones, client);
+ 		bt_gatt_client_unref(client->parent);

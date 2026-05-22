@@ -1,0 +1,22 @@
+###################################################################################################
+Date: Mon, 17 Dec 2018 15:23:36 +0000
+From: Ben Gray <ben.gray@sky.uk>
+Subject: [PATCH] Update configuration options for SkyQ boxes.
+Source: SKY 06882765a9d556ef683026a84f96d45ac42b5d98 Mon Sep 17 00:00:00 2001
+Signed-off-by: Tijo Thomas John <tijo.thomas@sky.uk>
+Recreated by: Sushant Daspute <sushant_daspute@comcast.com>
+###################################################################################################
+
+Index: bluez-5.48/src/main.conf
+===================================================================
+--- bluez-5.48.orig/src/main.conf
++++ bluez-5.48/src/main.conf
+@@ -2,7 +2,7 @@
+
+ # Default adapter name
+ # Defaults to 'BlueZ X.YZ'
+-Name = Sky
++Name = Xumo
+
+ # Default device class. Only the major and minor device class bits are
+ # considered. Defaults to '0x000000'.

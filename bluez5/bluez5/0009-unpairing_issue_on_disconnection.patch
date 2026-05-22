@@ -1,0 +1,32 @@
+Date: Sep 11, 2023
+From: nmuthu523 <Natraj_Muthusamy@comcast.com>
+Source: COMCAST
+Subject: Updated the bonding info when it is paired 
+Signed-off-by:	nmuthu523 <Natraj_Muthusamy@comcast.com>
+Index: bluez-5.54/src/device.c
+===================================================================
+--- bluez-5.54.orig/src/device.c
++++ bluez-5.54/src/device.c
+@@ -1585,6 +1585,7 @@ static void device_profile_connected(str
+ {
+ 	struct btd_service *pending;
+ 	GSList *l;
++	struct bearer_state *state = get_state(dev, dev->bdaddr_type);
+ 
+ 	DBG("%s %s (%d)", profile->name, strerror(-err), -err);
+ 
+@@ -1632,6 +1633,14 @@ done:
+ 
+ 	DBG("returning response to %s", dbus_message_get_sender(dev->connect));
+ 
++	/* Setting the bonded state as true after the HID device succesfully connected 
++	 * and paired to avoid the unpairing of device during the disconnection.
++	 */
++	if ((strcmp(profile->name, "input-hid") == 0) && (state->paired == TRUE)  && (state->bonded != TRUE)) {
++		DBG("Setting the HID device as bonded, since it is already paired");
++		device_set_bonded(dev, dev->bdaddr_type);
++	}
++
+ 	l = find_service_with_state(dev->services, BTD_SERVICE_STATE_CONNECTED);
+ 
+ 	if (err && l == NULL) {

@@ -1,0 +1,21 @@
+#########################################################################
+Date: Feb 15, 2023 17:30 PM
+From: abhishek gupta <abhishek.gupta@sky.uk>
+Subject: Bluetooth pairing is not retained after reboot
+Source: Sky
+Signed-off-by: abhishek gupta <abhishek.gupta@sky.uk>
+#########################################################################
+
+Index: bluez-5.48/src/main.conf
+===================================================================
+--- bluez-5.48.orig/src/main.conf
++++ bluez-5.48/src/main.conf
+@@ -99,7 +99,7 @@ DebugKeys = false
+ # AutoEnable defines option to enable all controllers when they are found.
+ # This includes adapters present on start as well as adapters that are plugged
+ # in later on. Defaults to 'false'.
+-#AutoEnable=false
++AutoEnable=true
+ 
+ [sky]
+ # KernelConnectionControl defines option to enable / disable the kernel side

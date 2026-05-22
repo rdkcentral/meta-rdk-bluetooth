@@ -1,0 +1,35 @@
+###################################################################################################
+Date: Tue, 19 Nov 2024 07:44:00 +0000
+From: https://github.com/bluez/bluez/commit/2b480bd5660bc27b9340118c87b47acbbc6e109d
+https://github.com/bluez/bluez/commit/48b7f7e5fe53b434f388a8b85cc0996853b3567c
+
+Subject: [PATCH] Device not getting discovered post pairing failure.
+
+In the event of a pairing failure, the device will be marked as temporary.
+This allows the cache to be cleared, enabling the user to rediscover the device seamlessly.
+
+Source: Bluez open source
+Upstream-Status: Pending
+Signed-off-by: Natraj Muthusamy <Natraj_Muthusamy@comcast.com>
+###################################################################################################
+
+diff --git a/src/device.c b/src/device.c
+index c782620..15ba1a3 100644
+--- a/src/device.c
++++ b/src/device.c
+@@ -5634,6 +5634,15 @@ void device_bonding_complete(struct btd_device *device, uint8_t bdaddr_type,
+ 
+ 	if (status) {
+ 		device_cancel_authentication(device, TRUE);
++
++		/* Put the device back to the temporary state so that it will be
++		 * treated as a newly discovered device.
++		 */
++		if (!btd_device_is_connected(device) &&
++			!device_is_paired(device, bdaddr_type) &&
++			!device_is_trusted(device))
++			btd_device_set_temporary(device, true);
++
+ 		device_bonding_failed(device, status);
+ 		return;
+ 	}

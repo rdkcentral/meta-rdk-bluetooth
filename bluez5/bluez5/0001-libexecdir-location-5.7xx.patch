@@ -1,0 +1,18 @@
+Date: Wed, 26 Feb 2020 20:59:22 +0000
+From: mselva006c <mani_selvaraj@comcast.com>
+Subject: [PATCH] PACEXI5-2637: Bluetooth device is disconnected after reboot Override libexecdir to libdir/bpn.
+Source: COMCAST b2269f51c8e1d79630a7c809c77d7fc024551741 Mon Sep 17 00:00:00 2001
+Signed-off-by: mselva006c <mani_selvaraj@comcast.com>
+Index: bluez-5.75/Makefile.am
+===================================================================
+--- bluez-5.75.orig/Makefile.am
++++ bluez-5.75/Makefile.am
+@@ -16,7 +16,7 @@ CLEANFILES =
+ 
+ EXTRA_DIST =
+ 
+-pkglibexecdir = @PKGLIBEXECDIR@
++pkglibexecdir = /usr/lib/bluez5/bluetooth
+ 
+ pkglibexec_PROGRAMS =
+ 

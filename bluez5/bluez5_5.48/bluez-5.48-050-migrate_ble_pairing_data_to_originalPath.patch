@@ -1,0 +1,14 @@
+Index: bluez-5.48/src/bluetooth.service.in
+===================================================================
+--- bluez-5.48.orig/src/bluetooth.service.in
++++ bluez-5.48/src/bluetooth.service.in
+@@ -8,8 +8,7 @@ ConditionPathIsDirectory=/sys/class/blue
+ [Service]
+ Type=dbus
+ BusName=org.bluez
+-ExecStartPre=/bin/mkdir -p /var/lib/bluetooth
+-ExecStartPre=/bin/mkdir -p /opt/lib/bluetooth
++ExecStartPre=/bin/sh -c '/etc/bluetooth/bt_original_path_setup.sh'
+ ExecStart=@libexecdir@/bluetoothd -d
+ NotifyAccess=main
+ #WatchdogSec=10

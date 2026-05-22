@@ -1,0 +1,17 @@
+Date: May 4, 2023
+From: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
+Source: COMCAST
+Subject: BT Cache Cause Discovery Failure
+Signed-off-by: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
+Index: bluez-5.54/src/device.c
+===================================================================
+--- bluez-5.54.orig/src/device.c
++++ bluez-5.54/src/device.c
+@@ -4200,6 +4200,7 @@ static void device_remove_stored(struct
+ 
+ 	g_free(data);
+ 	g_key_file_free(key_file);
++        remove(filename);
+ }
+ 
+ void device_remove(struct btd_device *device, gboolean remove_stored)

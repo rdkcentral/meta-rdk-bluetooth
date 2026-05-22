@@ -1,0 +1,47 @@
+#########################################################################
+Date: Nov 9, 2023 13:19 PM
+Source: Sky
+License:
+Upstream-Status: Pending
+Signed-off-by: Jack O'Gorman <jack.ogorman@sky.uk>
+#########################################################################
+
+diff --git a/src/device.c b/src/device.c
+index b8b61d80d..d205fdcd6 100644
+--- a/src/device.c
++++ b/src/device.c
+@@ -1890,6 +1890,16 @@ static DBusMessage *dev_connect(DBusConnection *conn, DBusMessage *msg,
+ 	else
+ 		bdaddr_type = select_conn_bearer(dev);
+ 
++	//SKY: Necessary to check that bluez selects classic for audio devices which also have le advertisement
++    if (dev->bredr && dev->le)
++    {
++        DBG("Dual mode device of class %d, bluez selected type %d to connect\n", (dev->class >> 8) & 0x1f, bdaddr_type);
++        if (((dev->class >> 8) & 0x1f) == 4)
++        {
++            DBG("Dual mode device is an audio device, forcing transport as classic");
++            bdaddr_type = BDADDR_BREDR;
++        }
++    }
+ 	if (bdaddr_type != BDADDR_BREDR) {
+ 		int err;
+ 
+@@ -2488,6 +2498,17 @@ static DBusMessage *pair_device(DBusConnection *conn, DBusMessage *msg,
+ 		bdaddr_type = BDADDR_BREDR;
+ 	else
+ 		bdaddr_type = select_conn_bearer(device);
++	
++	//SKY: Necessary to check that bluez selects classic for audio devices which also have le advertisement
++    if (device->bredr && device->le)
++    {
++        DBG("Dual mode device of class %d, bluez selected type %d to connect\n", (device->class >> 8) & 0x1f, bdaddr_type);
++        if (((device->class >> 8) & 0x1f) == 4)
++        {
++            DBG("Dual mode device is an audio device, forcing transport as classic");
++            bdaddr_type = BDADDR_BREDR;
++        }
++    }
+ 
+ 	state = get_state(device, bdaddr_type);
+ 

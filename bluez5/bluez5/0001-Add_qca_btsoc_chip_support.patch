@@ -1,0 +1,99 @@
+##################################################################
+Date: Jun 29, 2020 2:57 PM
+From: Tijo Thomas John <tijo.thomas@sky.uk>
+Source: Qualcomm
+Subject: Bluez patch to enable Qualcomm chip in hciattach
+Signed-off-by: Tijo Thomas John <tijo.thomas@sky.uk>
+##################################################################
+Index: bluez/tools/hciattach.c
+===================================================================
+--- a/tools/hciattach.c
++++ b/tools/hciattach.c
+@@ -1094,7 +1094,7 @@ struct uart_t uart[] = {
+ 			FLOW_CTL, DISABLE_PM, NULL, ath3k_ps, ath3k_pm  },
+ 
+ 	/* QUALCOMM BTS */
+-	{ "qualcomm",   0x0000, 0x0000, HCI_UART_H4,   115200, 115200,
++	{ "qualcomm",   0x0000, 0x0000, HCI_UART_QCA,   115200, 115200,
+ 			FLOW_CTL, DISABLE_PM, NULL, qualcomm, NULL },
+ 
+ 	/* Intel Bluetooth Module */
+@@ -1138,6 +1138,7 @@ static int init_uart(char *dev, struct u
+ 	struct termios ti;
+ 	int fd, i;
+ 	unsigned long flags = 0;
++	printf("%s : dev = %s\n",__func__, dev);
+ 
+ 	if (raw)
+ 		flags |= 1 << HCI_UART_RAW_DEVICE;
+@@ -1171,6 +1172,7 @@ static int init_uart(char *dev, struct u
+ 		goto fail;
+ 	}
+ 
++	printf("%s : set init speed %d\n",__func__, u->init_speed);
+ 	/* Set initial baudrate */
+ 	if (set_speed(fd, &ti, u->init_speed) < 0) {
+ 		perror("Can't set initial baud rate");
+@@ -1184,11 +1186,13 @@ static int init_uart(char *dev, struct u
+ 		usleep(500000);
+ 	}
+ 
++	printf("%s : call u->init\n",__func__);
+ 	if (u->init && u->init(fd, u, &ti) < 0)
+ 		goto fail;
+ 
+ 	tcflush(fd, TCIOFLUSH);
+ 
++	printf("%s : set actual speed %d\n",__func__, u->speed);
+ 	/* Set actual baudrate */
+ 	if (set_speed(fd, &ti, u->speed) < 0) {
+ 		perror("Can't set baud rate");
+@@ -1207,6 +1211,7 @@ static int init_uart(char *dev, struct u
+ 		goto fail;
+ 	}
+ 
++	printf("set protol %d :\n, u->proto");
+ 	if (ioctl(fd, HCIUARTSETPROTO, u->proto) < 0) {
+ 		perror("Can't set device");
+ 		goto fail;
+@@ -1353,6 +1358,7 @@ int main(int argc, char *argv[])
+ 		}
+ 	}
+ 
++	printf("hciattach - type is %s\n",u->type);
+ 	if (!u) {
+ 		fprintf(stderr, "Unknown device type or id\n");
+ 		exit(1);
+Index: bluez/tools/hciattach_qualcomm.c
+===================================================================
+--- a/tools/hciattach_qualcomm.c
++++ b/tools/hciattach_qualcomm.c
+@@ -170,9 +170,11 @@ int qualcomm_init(int fd, int speed, str
+ 	unsigned char resp[100];		/* Response */
+ 	char fw[100];
+ 	int n;
++	fprintf(stderr, "%s\n", __func__);
+ 
+ 	memset(resp, 0, 100);
+ 
++#if 0
+ 	/* Get Manufacturer and LMP version */
+ 	cmd[0] = HCI_COMMAND_PKT;
+ 	cmd[1] = 0x01;
+@@ -202,7 +204,7 @@ int qualcomm_init(int fd, int speed, str
+ 
+ 	/* Print LMP version */
+ 	fprintf(stderr,
+-		"Qualcomm module LMP version : 0x%02x\n", resp[10] & 0xFF);
++		"1 Qualcomm module LMP version : 0x%02x\n", resp[10] & 0xFF);
+ 
+ 	/* Print LMP subversion */
+ 	{
+@@ -269,6 +271,6 @@ int qualcomm_init(int fd, int speed, str
+ 	} while (resp[4] != cmd[1] && resp[5] != cmd[2]);
+ 
+ 	nanosleep(&tm, NULL);
+-
++#endif
+ 	return 0;
+ }

@@ -1,0 +1,88 @@
+Date: Jun 29, 2023
+From: Ananth Marimuthu <ananth_marimuthu2@comcast.com>
+Source: COMCAST
+Subject: Update bluez 5.66 in all broadband device
+Signed-off-by: Ananth Marimuthu <ananth_marimuthu2@comcast.com>
+Index: bluez-5.66/src/adapter.c
+===================================================================
+--- bluez-5.66.orig/src/adapter.c
++++ bluez-5.66/src/adapter.c
+@@ -10145,8 +10145,12 @@ static void read_info_complete(uint8_t s
+ 		break;
+ 	}
+ 
+-	if (missing_settings & MGMT_SETTING_SECURE_CONN)
+-		set_mode(adapter, MGMT_OP_SET_SECURE_CONN, 0x01);
++    if (adapter->supported_settings & MGMT_SETTING_SECURE_CONN) {
++        if (btd_opts.secure_conn && !(adapter->current_settings & MGMT_SETTING_SECURE_CONN))
++            set_mode(adapter, MGMT_OP_SET_SECURE_CONN, 0x01);
++        else if (!btd_opts.secure_conn && (adapter->current_settings & MGMT_SETTING_SECURE_CONN))
++            set_mode(adapter, MGMT_OP_SET_SECURE_CONN, 0x00);
++    }
+ 
+ 	if (adapter->supported_settings & MGMT_SETTING_PRIVACY)
+ 		set_privacy(adapter, btd_opts.privacy);
+Index: bluez-5.66/src/btd.h
+===================================================================
+--- bluez-5.66.orig/src/btd.h
++++ bluez-5.66/src/btd.h
+@@ -112,6 +112,7 @@ struct btd_opts {
+ 	gboolean	name_resolv;
+ 	gboolean	debug_keys;
+ 	gboolean	fast_conn;
++    gboolean    secure_conn;
+ 	gboolean	refresh_discovery;
+ 	gboolean	experimental;
+ 	struct queue	*kernel;
+Index: bluez-5.66/src/main.c
+===================================================================
+--- bluez-5.66.orig/src/main.c
++++ bluez-5.66/src/main.c
+@@ -142,6 +142,7 @@ static const char *gatt_options[] = {
+ 	"KeySize",
+ 	"ExchangeMTU",
+ 	"Channels",
++    "SecureConnections",
+ 	NULL
+ };
+ 
+@@ -925,6 +926,15 @@ static void parse_config(GKeyFile *confi
+ 		btd_opts.gatt_channels = val;
+ 	}
+ 
++    boolean = g_key_file_get_integer(config, "GATT", "SecureConnections", &err);
++    if (err) {
++        DBG("%s", err->message);
++        g_clear_error(&err);
++    } else {
++        DBG("SecureConnections=%s", boolean ? "true" : "false");
++        btd_opts.secure_conn = boolean;
++    }
++
+ 	str = g_key_file_get_string(config, "AVDTP", "SessionMode", &err);
+ 	if (err) {
+ 		DBG("%s", err->message);
+@@ -1010,6 +1020,7 @@ static void init_defaults(void)
+ 	btd_opts.gatt_cache = BT_GATT_CACHE_ALWAYS;
+ 	btd_opts.gatt_mtu = BT_ATT_MAX_LE_MTU;
+ 	btd_opts.gatt_channels = 3;
++    btd_opts.secure_conn = TRUE;
+ 
+ 	btd_opts.avdtp.session_mode = BT_IO_MODE_BASIC;
+ 	btd_opts.avdtp.stream_mode = BT_IO_MODE_BASIC;
+Index: bluez-5.66/src/main.conf
+===================================================================
+--- bluez-5.66.orig/src/main.conf
++++ bluez-5.66/src/main.conf
+@@ -284,6 +284,11 @@ Privacy = device
+ # in later on. Defaults to 'true'.
+ #AutoEnable=true
+ 
++#Enables or disables bluetooth LE "Secure Connections".  This is a BT 4.1
++#feature used at pairing time, ideally it should be enabled but can cause
++#interopt issues with some BLE devices. Defaults to 'true'.
++SecureConnections = true
++
+ # Audio devices that were disconnected due to suspend will be reconnected on
+ # resume. ResumeDelay determines the delay between when the controller
+ # resumes from suspend and a connection attempt is made. A longer delay is

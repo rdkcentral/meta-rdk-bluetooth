@@ -1,0 +1,94 @@
+###################################################################################################
+Date: Mon, 18 Nov 2024 09:27:46 +0000
+From: https://github.com/BluezTestBot/bluez/commit/9c0a3836cc413e2ef2108df3982feacaf77a4b52
+
+Subject: [PATCH] /dev node is not removed when power off/disconnect the HID devices
+
+This adds special handling for HID devices so they are destroyed when
+disconnected rather than keeping their device node around.
+https://github.com/bluez/bluez/issues/848
+
+Source: Bluez open source
+Upstream-Status: Pending
+Signed-off-by: Ananth Marimuthu <ananth_marimuthu2@comcast.com>
+###################################################################################################
+
+Index: bluez-5.48/profiles/input/hog-lib.c
+===================================================================
+--- bluez-5.48.orig/profiles/input/hog-lib.c
++++ bluez-5.48/profiles/input/hog-lib.c
+@@ -1623,7 +1623,7 @@ void bt_hog_detach(struct bt_hog *hog)
+ 	GSList *l;
+ 
+ 	if (!hog->attrib)
+-		return;
++		goto done;
+ 
+ 	queue_foreach(hog->bas, (void *) bt_bas_detach, NULL);
+ 
+@@ -1651,6 +1651,8 @@ void bt_hog_detach(struct bt_hog *hog)
+ 	queue_foreach(hog->gatt_op, (void *) cancel_gatt_req, NULL);
+ 	g_attrib_unref(hog->attrib);
+ 	hog->attrib = NULL;
++done:
++    uhid_destroy(hog);
+ }
+ 
+ int bt_hog_set_control_point(struct bt_hog *hog, bool suspend)
+@@ -1669,6 +1671,22 @@ int bt_hog_set_control_point(struct bt_h
+ 	return 0;
+ }
+ 
++void uhid_destroy(struct bt_hog *hog)
++{
++        int err;
++
++        if (!hog->uhid)
++                return;
++
++        err = bt_uhid_destroy(hog->uhid);
++        if (err < 0) {
++                error("bt_uhid_destroy: %s", strerror(-err));
++                return;
++        }
++
++        hog->uhid_created = false;
++}
++
+ int bt_hog_send_report(struct bt_hog *hog, void *data, size_t size, int type)
+ {
+ 	struct report *report;
+Index: bluez-5.48/src/shared/uhid.c
+===================================================================
+--- bluez-5.48.orig/src/shared/uhid.c
++++ bluez-5.48/src/shared/uhid.c
+@@ -236,3 +236,20 @@ int bt_uhid_send(struct bt_uhid *uhid, c
+ 	/* uHID kernel driver does not handle partial writes */
+ 	return len != sizeof(*ev) ? -EIO : 0;
+ }
++
++int bt_uhid_destroy(struct bt_uhid *uhid)
++{
++        struct uhid_event ev;
++        int err;
++
++        if (!uhid)
++                return -EINVAL;
++        memset(&ev, 0, sizeof(ev));
++        ev.type = UHID_DESTROY;
++
++        err = bt_uhid_send(uhid, &ev);
++        if (err < 0)
++                return err;
++
++        return err;
++}
+Index: bluez-5.48/src/shared/uhid.h
+===================================================================
+--- bluez-5.48.orig/src/shared/uhid.h
++++ bluez-5.48/src/shared/uhid.h
+@@ -42,3 +42,4 @@ unsigned int bt_uhid_register(struct bt_
+ bool bt_uhid_unregister(struct bt_uhid *uhid, unsigned int id);
+ 
+ int bt_uhid_send(struct bt_uhid *uhid, const struct uhid_event *ev);
++int bt_uhid_destroy(struct bt_uhid *uhid);

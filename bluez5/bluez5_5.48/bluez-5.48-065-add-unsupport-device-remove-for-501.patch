@@ -1,0 +1,22 @@
+Index: bluez-5.48/src/device.c
+===================================================================
+--- bluez-5.48.orig/src/device.c
++++ bluez-5.48/src/device.c
+@@ -100,6 +100,7 @@
+ #define GATT_INCLUDE_UUID_STR "2802"
+ #define GATT_CHARAC_UUID_STR "2803"
+ #define XBOX_GEN4_UNSUPPORT_MODALIAS "usb:v045Ep0B13d0509"
++#define XBOX_GEN4_UNSUPPORT_MODALIAS_501 "usb:v045Ep0B13d0501"
+ 
+ static DBusConnection *dbus_conn = NULL;
+ static unsigned service_state_cb_id;
+@@ -6434,7 +6435,8 @@ void btd_device_set_pnpid(struct btd_dev
+ 	store_device_info(device);
+ 
+ #ifdef BT_UNSUPPORTED_GAMEPAD_ENABLED
+-    if (g_strcmp0(device->modalias,XBOX_GEN4_UNSUPPORT_MODALIAS) == 0) {
++    if ((g_strcmp0(device->modalias,XBOX_GEN4_UNSUPPORT_MODALIAS) == 0) ||
++        (g_strcmp0(device->modalias,XBOX_GEN4_UNSUPPORT_MODALIAS_501) == 0)) {
+         DBG("Removed the unsupported device from the bluz %s", device->modalias);
+         btd_device_set_temporary(device, true);
+         if (!btd_device_is_connected(device)) {

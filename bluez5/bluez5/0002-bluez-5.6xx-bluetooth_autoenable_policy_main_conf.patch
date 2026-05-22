@@ -1,0 +1,22 @@
+Date: Fri, 16 Dec 2022 21:42:22 +0000
+From: mselva006c <mani_selvaraj@comcast.com>
+Subject: [PATCH] bluetooth_autoenable_policy_main_conf
+Source: dd9c84705354e92ddf184ec8096363a7dcf9b7af Mon Sep 17 00:00:00 2001 
+Signed-off-by: mselva006c <mani_selvaraj@comcast.com>
+---
+ src/main.conf | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/main.conf b/src/main.conf
+index 2796f15..490abef 100644
+--- a/src/main.conf
++++ b/src/main.conf
+@@ -282,7 +282,7 @@
+ # AutoEnable defines option to enable all controllers when they are found.
+ # This includes adapters present on start as well as adapters that are plugged
+ # in later on. Defaults to 'true'.
+-#AutoEnable=true
++AutoEnable = true
+ 
+ # Audio devices that were disconnected due to suspend will be reconnected on
+ # resume. ResumeDelay determines the delay between when the controller

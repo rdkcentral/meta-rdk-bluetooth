@@ -1,0 +1,38 @@
+Date: Apr 5, 2024
+From: Jack O'Gorman <jack.ogorman@sky.uk>
+Source: COMCAST
+Subject: stop av/c passthrough events from acting as a remote control as the UI does not distinguish between inputs on Pioneer and xumo
+Signed-off-by: Jack O'Gorman <jack.ogorman@sky.uk>
+diff --git a/profiles/audio/avctp.c b/profiles/audio/avctp.c
+index c192e218d..c0ffce227 100644
+--- a/profiles/audio/avctp.c
++++ b/profiles/audio/avctp.c
+@@ -56,6 +56,7 @@
+ #include "avctp.h"
+ #include "avrcp.h"
+ 
++#define AVC_SUPPRESS_UINPUT_EVENTS 1
+ /* AV/C Panel 1.23, page 76:
+  * command with the pressed value is valid for two seconds
+  */
+@@ -323,6 +324,9 @@ static int send_event(int fd, uint16_t type, uint16_t code, int32_t value)
+ 
+ static void send_key(int fd, uint16_t key, int pressed)
+ {
++#ifdef AVC_SUPPRESS_UINPUT_EVENTS
++    DBG("AV/C keys will not be sent as uinput is not created");
++#endif //AVC_SUPPRESS_UINPUT_EVENTS
+ 	if (fd < 0)
+ 		return;
+ 
+@@ -1163,6 +1167,10 @@ failed:
+ 
+ static int uinput_create(char *name)
+ {
++#ifdef AVC_SUPPRESS_UINPUT_EVENTS 
++    DBG("AVC passthrough events will not be supported ");
++	return -1;
++#endif //AVC_SUPPRESS_UINPUT_EVENTS
+ 	struct uinput_dev dev;
+ 	int fd, err, i;
+ 

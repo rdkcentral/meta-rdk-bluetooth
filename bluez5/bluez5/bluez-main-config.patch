@@ -1,0 +1,24 @@
+Date: Aug 29 2024 3:01 PM
+From: Ananth Marimuthu <ananth_marimuthu2@comcast.com>
+Source: COMCAST
+Subject: integrate the latest bluez 5.77
+Signed-off-by: Ananth Marimuthu <ananth_marimuthu2@comcast.com>
+Index: bluez-5.75/src/main.conf
+===================================================================
+--- bluez-5.75.orig/src/main.conf
++++ bluez-5.75/src/main.conf
+@@ -2,11 +2,11 @@
+ 
+ # Default adapter name
+ # Defaults to 'BlueZ X.YZ'
+-#Name = BlueZ
++Name = Xumo
+ 
+ # Default device class. Only the major and minor device class bits are
+ # considered. Defaults to '0x000000'.
+-#Class = 0x000100
++Class = 0x040414
+ 
+ # How long to stay in discoverable mode before going back to non-discoverable
+ # The value is in seconds. Default is 180, i.e. 3 minutes.
+

@@ -1,0 +1,15 @@
+Date: Aug 14, 2023
+From: nmuthu523 <Natraj_Muthusamy@comcast.com>
+Source: COMCAST
+Subject: Setting disable security flag to false to Enabling network security on bluez 5.66
+Signed-off-by: nmuthu523 <Natraj_Muthusamy@comcast.com>
+Index: bluez-5.66/profiles/network/network.conf
+===================================================================
+--- bluez-5.66.orig/profiles/network/network.conf
++++ bluez-5.66/profiles/network/network.conf
+@@ -3,4 +3,4 @@
+ [General]
+ 
+ # Disable link encryption: default=false
+-#DisableSecurity=true
++DisableSecurity = false
