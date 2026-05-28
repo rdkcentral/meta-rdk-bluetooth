@@ -1,0 +1,88 @@
+#########################################################################
+Date: Mon, 23 Jun 2025 12:00 PM
+
+Subject: Patch that "should be able to resolve
+the issue where the remote control buttons are not recognized
+on the connection after the disconnection." Provided by Max Chou
+from Realtek <max.chou@realtek.com>.
+
+Source: Realtek
+Upstream-Status: Pending
+Signed-off-by: Theo Anderson <theo.anderson@sky.uk>
+#########################################################################
+diff --git a/profiles/input/hog-lib.c b/profiles/input/hog-lib.c
+index fa1f3ec..9549efd 100644
+--- a/profiles/input/hog-lib.c
++++ b/profiles/input/hog-lib.c
+@@ -1434,6 +1434,11 @@ void bt_hog_unref(struct bt_hog *hog)
+ 	hog_free(hog);
+ }
+ 
++void bt_hog_detach_corrupted_hog(struct bt_hog *hog)
++{
++	hog_free(hog);
++}
++
+ static void find_included_cb(uint8_t status, GSList *services, void *user_data)
+ {
+ 	struct gatt_request *req = user_data;
+diff --git a/profiles/input/hog-lib.h b/profiles/input/hog-lib.h
+index 415dc63..1774164 100644
+--- a/profiles/input/hog-lib.h
++++ b/profiles/input/hog-lib.h
+@@ -39,3 +39,4 @@ void bt_hog_detach(struct bt_hog *hog);
+ 
+ int bt_hog_set_control_point(struct bt_hog *hog, bool suspend);
+ int bt_hog_send_report(struct bt_hog *hog, void *data, size_t size, int type);
++void bt_hog_detach_corrupted_hog(struct bt_hog *hog);
+diff --git a/profiles/input/hog.c b/profiles/input/hog.c
+index 23c9c15..52b7a68 100644
+--- a/profiles/input/hog.c
++++ b/profiles/input/hog.c
+@@ -58,6 +60,7 @@
+ #include "hog-lib.h"
+ 
+ #define HOG_UUID		"00001812-0000-1000-8000-00805f9b34fb"
++#define HOG_UUID16		0x1812
+ 
+ struct hog_device {
+ 	struct btd_device	*device;
+@@ -173,12 +176,21 @@ static void hog_remove(struct btd_service *service)
+ 	hog_device_free(dev);
+ }
+ 
++static void foreach_hog_service(struct gatt_db_attribute *attr, void *user_data)
++{
++	int *val = user_data;
++
++	*val = 1;
++}
++
+ static int hog_accept(struct btd_service *service)
+ {
+ 	struct hog_device *dev = btd_service_get_user_data(service);
+ 	struct btd_device *device = btd_service_get_device(service);
+ 	struct gatt_db *db = btd_device_get_gatt_db(device);
+ 	GAttrib *attrib = btd_device_get_attrib(device);
++	bt_uuid_t uuid;
++	int found = 0;
+ 
+ 	if (!dev->hog) {
+ 		hog_device_accept(dev, db);
+@@ -186,6 +198,16 @@ static int hog_accept(struct btd_service *service)
+ 			return -EINVAL;
+ 	}
+ 
++	/* Handle the HID services */
++	bt_uuid16_create(&uuid, HOG_UUID16);
++	gatt_db_foreach_service(db, &uuid, foreach_hog_service, &found);
++	if (!found) {
++		bt_hog_detach_corrupted_hog(dev->hog);
++		dev->hog = NULL;
++		/* Make it accepted when the gatt client is ready. */
++		return -EINVAL;
++	}
++
+ 	/* TODO: Replace GAttrib with bt_gatt_client */
+ 	bt_hog_attach(dev->hog, attrib);
+ 
