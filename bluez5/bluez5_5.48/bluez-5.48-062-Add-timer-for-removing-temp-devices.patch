@@ -143,16 +143,4 @@ Index: bluez-5.48/src/main.c
  	main_opts.reverse_sdp = TRUE;
  	main_opts.name_resolv = TRUE;
  	main_opts.debug_keys = FALSE;
-Index: bluez-5.48/src/main.conf
-===================================================================
---- bluez-5.48.orig/src/main.conf
-+++ bluez-5.48/src/main.conf
-@@ -133,3 +133,8 @@ DefaultAttLeMtu = 23
- # Defaults to 'false'
- DelayGATTUntilBonded = true
- 
-+# How long to keep temporary devices around
-+# The value is in seconds. Default is 30.
-+# 0 = disable timer, i.e. never keep temporary devices
-+# TemporaryTimeout = 30
-+
+
