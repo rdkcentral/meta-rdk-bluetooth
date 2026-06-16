@@ -50,10 +50,8 @@ SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://bluez-5.48-067-remove-unused-binaries.patch \
     file://bluez-5.48-068-RDKEMW-8673-stream-use-after-free.patch \
     file://bluez-5.48-069-RDKEMW-11885-UAF-in-messagefilter.patch \
-    "
-SRC_URI:append = " file://bluez-5.48-kirkstone_compile_errors.patch "
-
-SRC_URI += "file://0001-Fix-race-issue-with-tools-directory.patch \
+    file://bluez-5.48-kirkstone_compile_errors.patch \
+    file://0001-Fix-race-issue-with-tools-directory.patch \
     file://CVE-2019-8922.patch \
     file://CVE-2020-27153.patch \
     file://CVE-2022-0204.patch \
