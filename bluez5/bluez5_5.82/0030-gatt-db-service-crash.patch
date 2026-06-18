@@ -1,0 +1,33 @@
+#########################################################################
+Date: Jan 01, 2024 16:19 PM
+Source: Comcast
+Upstream-Status: Pending
+
+Signed-off-by: Srikanth Simgamsetti <Srikanth_Simgamsetti@comcast.com>
+#########################################################################
+
+Index: bluez-5.80/src/shared/gatt-db.c
+===================================================================
+--- bluez-5.80.orig/src/shared/gatt-db.c
++++ bluez-5.80/src/shared/gatt-db.c
+@@ -535,14 +535,18 @@ static void gatt_db_destroy(struct gatt_
+ 	 * latter from sending service_removed events.
+ 	 */
+ 	queue_destroy(db->notify_list, notify_destroy);
+-	db->notify_list = NULL;
++db->notify_list = NULL;
++db->services = NULL;
++
+ 
+ 	if (db->hash_id)
+ 		timeout_remove(db->hash_id);
+ 
+ 	queue_destroy(db->services, gatt_db_service_destroy);
+ 	free(db->ccc);
+-	free(db);
++	db->services = NULL;
++free(db);
++        db = NULL;
+ }
+ 
+ void gatt_db_unref(struct gatt_db *db)

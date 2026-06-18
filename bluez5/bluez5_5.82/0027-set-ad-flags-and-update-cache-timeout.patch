@@ -1,0 +1,78 @@
+#########################################################################
+Date: Oct 17, 2024 15:19 PM
+Source: Comcast
+Upstream-Status: Pending
+Signed-off-by: Natraj Muthusamy <Natraj_Muthusamy@comcast.com>
+#########################################################################
+
+Index: bluez-5.80/src/adapter.c
+===================================================================
+--- bluez-5.80.orig/src/adapter.c
++++ bluez-5.80/src/adapter.c
+@@ -80,7 +80,7 @@
+ 
+ #define CONN_SCAN_TIMEOUT (3)
+ #define IDLE_DISCOV_TIMEOUT (5)
+-#define TEMP_DEV_TIMEOUT (30)
++#define TEMP_DEV_TIMEOUT (3 * 30)
+ #define BONDING_TIMEOUT (2 * 60)
+ 
+ #define SCAN_TYPE_BREDR (1 << BDADDR_BREDR)
+@@ -1726,8 +1726,10 @@ static void discovery_cleanup(struct btd
+ 		next = g_slist_next(l);
+ 
+ 		if (device_is_temporary(dev) && !device_is_connectable(dev)
+-			&& !btd_device_is_connected(dev))
++			&& !btd_device_is_connected(dev)) {
++            DBG("Removing the device interface");
+ 			btd_adapter_remove_device(adapter, dev);
++        }
+ 	}
+ }
+ 
+Index: bluez-5.80/src/device.c
+===================================================================
+--- bluez-5.80.orig/src/device.c
++++ bluez-5.80/src/device.c
+@@ -6678,13 +6678,25 @@ void device_set_flags(struct btd_device
+ 	if (!device)
+ 		return;
+ 
+-	DBG("flags %d", flags);
++    DBG("flags %d apperance %d", flags,device->appearance);
++
++    /* Setting the Limited and General discoverable flags
++     * to mark the LE gamepad devices as connectable
++     * */
++    if (flags == 0x00 && device->appearance == HID_LE_GAMEPAD_APPEARANCE) {
++        DBG("Setting the Limited and General discoverable flags");
++        device->ad_flags[0] |= ADV_FLAG_LE_LIMITED_DISC_MODE;
++        device->ad_flags[0] |= ADV_FLAG_LE_GENERAL_DISC_MODE;
++        goto done;
++    }
++
+ 
+ 	if (device->ad_flags[0] == flags)
+ 		return;
+ 
+ 	device->ad_flags[0] = flags;
+ 
++    done:
+ 	g_dbus_emit_property_changed(dbus_conn, device->path,
+ 					DEVICE_INTERFACE, "AdvertisingFlags");
+ }
+Index: bluez-5.80/src/device.h
+===================================================================
+--- bluez-5.80.orig/src/device.h
++++ bluez-5.80/src/device.h
+@@ -11,6 +11,10 @@
+ 
+ #define DEVICE_INTERFACE	"org.bluez.Device1"
+ 
++#define HID_LE_GAMEPAD_APPEARANCE   0x3c4
++#define ADV_FLAG_LE_LIMITED_DISC_MODE   0x01
++#define ADV_FLAG_LE_GENERAL_DISC_MODE   0x02
++
+ struct btd_device;
+ 
+ struct btd_device *device_create(struct btd_adapter *adapter,

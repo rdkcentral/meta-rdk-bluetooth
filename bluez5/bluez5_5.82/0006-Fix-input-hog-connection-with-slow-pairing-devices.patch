@@ -1,0 +1,36 @@
+#########################################################################
+Date: Nov 03, 2022 11:19
+
+input: hog: Attempt to set security level if not bonded.
+    
+This attempts to set the security if the device is not bonded, the
+kernel will block any communication on the ATT socket while bumping
+the security and if that fails the device will be disconnected which
+is better than having the device dangling around without being able to
+communicate with it until it is properly bonded.
+
+Source: Sky
+Upstream-Status: Pending
+Signed-off-by: Anbukannadhasan <anbukannadasan.kar@sky.uk>
+#########################################################################
+
+Index: bluez-5.76/profiles/input/hog.c
+===================================================================
+--- bluez-5.76.orig/profiles/input/hog.c
++++ bluez-5.76/profiles/input/hog.c
+@@ -191,7 +191,14 @@ static int hog_accept(struct btd_service
+ 		client = btd_device_get_gatt_client(device);
+ 		if (!bt_gatt_client_set_security(client,
+ 						BT_ATT_SECURITY_MEDIUM))
+-			return -ECONNREFUSED;
++        {
++            DBG("Device may be refused connection due to not being able to elevate security level");
++            DBG("Security level: %d (minimum level: 2)", bt_gatt_client_get_security(client));
++            if (bt_gatt_client_get_security(client) < BT_ATT_SECURITY_MEDIUM) {
++                error("Security level is too low to allow HoG device to connect, try bonding device");
++                return -ECONNREFUSED;
++            }
++        }
+ 	}
+ 
+ 	/* TODO: Replace GAttrib with bt_gatt_client */

@@ -1,0 +1,27 @@
+###################################################################################################
+Date: Mon, 17 Dec 2018 15:32:17 +0000
+From c9d32b8621052347799c873f8031d11b1ec1030c Mon Sep 17 00:00:00 2001
+From: Ben Gray <ben.gray@sky.uk>
+Subject: [PATCH] This patch enables the building and installing of the bdaddr tool.
+The tool was previously in the no install section.
+Source: SKY
+Upstream-Status: Pending
+Signed-off-by: Tijo Thomas John <tijo.thomas@sky.uk>
+###################################################################################################
+
+Index: bluez-5.80/Makefile.tools
+===================================================================
+--- bluez-5.80.orig/Makefile.tools
++++ bluez-5.80/Makefile.tools
+@@ -225,9 +225,9 @@ endif
+ 
+ if TOOLS
+ bin_PROGRAMS += tools/rctest tools/l2test tools/l2ping tools/bluemoon \
+-		tools/hex2hcd tools/mpris-proxy tools/btattach tools/isotest
++		tools/hex2hcd tools/mpris-proxy tools/btattach tools/isotest tools/bdaddr
+ 
+-noinst_PROGRAMS += tools/bdaddr tools/avinfo tools/avtest \
++noinst_PROGRAMS += tools/avinfo tools/avtest \
+ 			tools/scotest tools/hwdb \
+ 			tools/hcieventmask tools/hcisecfilter \
+ 			tools/btinfo tools/btconfig \

@@ -1,0 +1,31 @@
+Date: Wed, 26 Feb 2020 20:37:40 +0000
+From: 7a378ab3195f9ee8746a14c603576263dde2e1b4 Mon Sep 17 00:00:00 2001
+Subject: [PATCH] DELIA-24590 RDK-27733: Removing do_postpatch from Bluetooth Recipes and add patch file
+        add patch file for modifying bluetooth.service.
+Source: COMCAST
+Signed-off-by: mselva006c <mani_selvaraj@comcast.com>
+---
+ src/bluetooth.service.in | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/bluetooth.service.in b/src/bluetooth.service.in
+index f9faaa4..18e5687 100644
+--- a/src/bluetooth.service.in
++++ b/src/bluetooth.service.in
+@@ -1,5 +1,7 @@
+ [Unit]
+ Description=Bluetooth service
++After=disk-check.service nvram.service dbus.service
++Requires=disk-check.service nvram.service dbus.service
+ Documentation=man:bluetoothd(8)
+ ConditionPathIsDirectory=/sys/class/bluetooth
+ 
+@@ -9,7 +11,7 @@ BusName=org.bluez
+ ExecStart=@pkglibexecdir@/bluetoothd
+ NotifyAccess=main
+ #WatchdogSec=10
+-#Restart=on-failure
++Restart=always
+ CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+ LimitNPROC=1
+ ProtectHome=true
