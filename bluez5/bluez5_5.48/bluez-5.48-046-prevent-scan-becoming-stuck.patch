@@ -1,0 +1,66 @@
+Date: Jan 22, 2024
+From: Natraj Muthusamy <Natraj_Muthusamy@comcast.com>
+Source: COMCAST
+Subject: enabling the scan with all devices causes more than 100 devices in certain devices, this can cause timing issues and so sometimes the scan gets stuck this change will detect the condition where the scan gets stuck and force the adapter out of the bad state
+Test Procedure: repeatedly scan for new devices (with all devices in the scan) and check the scan starts each time 
+Signed-off-by: Natraj Muthusamy <Natraj_Muthusamy@comcast.com>
+Index: bluez-5.48/src/adapter.c
+===================================================================
+--- bluez-5.48.orig/src/adapter.c
++++ bluez-5.48/src/adapter.c
+@@ -269,6 +269,7 @@ struct btd_adapter {
+ 	unsigned int db_id;		/* Service event handler for GATT db */
+ 
+ 	bool is_default;		/* true if adapter is default one */
++	bool scan_stuck;
+ };
+ 
+ typedef enum {
+@@ -1529,6 +1530,16 @@ static gboolean start_discovery_timeout(gpointer user_data)
+ 	DBG("adapter->current_discovery_filter == %d",
+ 	    !!adapter->current_discovery_filter);
+ 
++	if (adapter->scan_stuck) {
++		//scan has failed to start and we are stuck - start scan through hcitool
++		DBG("Starting the discovery using hcitool as the adapter scan is stucked ...");
++		//reset scanning with minimum length scan
++		system("hcitool scan --length 1");
++		//adapter has to start scanning after this in order that events are correctly preserved
++		adapter->discovering = false;
++		adapter->scan_stuck = false;
++	}
++
+ 	new_type = get_scan_type(adapter);
+ 
+ 	if (adapter->discovery_enable == 0x01) {
+@@ -1887,6 +1898,21 @@ static void stop_discovery_complete(uint8_t status, uint16_t length,
+ 		if (client->msg) {
+ 			reply = btd_error_busy(client->msg);
+ 			g_dbus_send_message(dbus_conn, reply);
++			if (status == MGMT_STATUS_INVALID_PARAMS || status == MGMT_STATUS_REJECTED) {
++				DBG("Invalid params received, setting flag to prevent getting stuck");
++				adapter->scan_stuck = true;
++				//resetting information for adapter to reflect that it is no longer discovering 
++				adapter->discovery_type = 0x00;
++				adapter->discovery_enable = 0x00;
++				adapter->filtered_discovery = false;
++				adapter->no_scan_restart_delay = false;
++				adapter->discovering = false;
++				g_dbus_emit_property_changed(dbus_conn, adapter->path,
++								ADAPTER_INTERFACE, "Discovering");
++
++				trigger_passive_scanning(adapter);
++
++			}
+ 		}
+ 		goto done;
+ 	}
+@@ -2114,7 +2140,7 @@ static int update_discovery_filter(struct btd_adapter *adapter)
+ 	 * starting discovery.
+ 	 */
+ 	if (filters_equal(adapter->current_discovery_filter, sd_cp) &&
+-	    adapter->discovering != 0) {
++	    adapter->discovering != 0 && !adapter->scan_stuck) {
+ 		DBG("filters were equal, deciding to not restart the scan.");
+ 		g_free(sd_cp);
+ 		return 0;

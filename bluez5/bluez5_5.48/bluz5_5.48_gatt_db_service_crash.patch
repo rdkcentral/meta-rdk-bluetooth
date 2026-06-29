@@ -1,0 +1,81 @@
+Date: Jan 3, 2024
+From: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
+Source: COMCAST
+Subject: Fix for Bluetoothd crash with gatt_db_service_foreach
+Signed-off-by: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
+Index: bluez-5.48/src/shared/gatt-db.c
+===================================================================
+--- bluez-5.48.orig/src/shared/gatt-db.c
++++ bluez-5.48/src/shared/gatt-db.c
+@@ -124,6 +124,7 @@ static void pending_read_result(struct p
+ 	p->func(p->attrib, err, data, length, p->user_data);
+ 
+ 	free(p);
++        p = NULL;
+ }
+ 
+ static void pending_read_free(void *data)
+@@ -141,6 +142,7 @@ static void pending_write_result(struct
+ 	p->func(p->attrib, err, p->user_data);
+ 
+ 	free(p);
++        p = NULL;
+ }
+ 
+ static void pending_write_free(void *data)
+@@ -160,7 +162,9 @@ static void attribute_destroy(struct gat
+ 	queue_destroy(attribute->pending_writes, pending_write_free);
+ 
+ 	free(attribute->value);
++        attribute->value = NULL;
+ 	free(attribute);
++        attribute = NULL;
+ }
+ 
+ static struct gatt_db_attribute *new_attribute(struct gatt_db_service *service,
+@@ -225,6 +229,7 @@ static void notify_destroy(void *data)
+ 		notify->destroy(notify->user_data);
+ 
+ 	free(notify);
++        notify = NULL;
+ }
+ 
+ static bool match_notify_id(const void *a, const void *b)
+@@ -282,7 +287,9 @@ static void gatt_db_service_destroy(void
+ 		attribute_destroy(service->attributes[i]);
+ 
+ 	free(service->attributes);
++        service->attributes = NULL;
+ 	free(service);
++        service = NULL;
+ }
+ 
+ static void gatt_db_destroy(struct gatt_db *db)
+@@ -298,7 +305,9 @@ static void gatt_db_destroy(struct gatt_
+ 	db->notify_list = NULL;
+ 
+ 	queue_destroy(db->services, gatt_db_service_destroy);
++        db->services = NULL;
+ 	free(db);
++        db = NULL;
+ }
+ 
+ void gatt_db_unref(struct gatt_db *db)
+@@ -1322,6 +1331,8 @@ void gatt_db_service_foreach(struct gatt
+ 		return;
+ 
+ 	service = attrib->service;
++        if(!service)
++             return;
+ 
+ 	for (i = 0; i < service->num_handles; i++) {
+ 		attr = service->attributes[i];
+@@ -1350,7 +1361,7 @@ void gatt_db_service_foreach_desc(struct
+ 	struct gatt_db_attribute *attr;
+ 	uint16_t i;
+ 
+-	if (!attrib || !func)
++	if (!attrib || !attrib->service || !func)
+ 		return;
+ 
+ 	/* Return if this attribute is not a characteristic declaration */

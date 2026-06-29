@@ -1,0 +1,71 @@
+diff --git a/src/adapter.c b/src/adapter.c
+index d0d4f6a..23cbeeb 100755
+--- a/src/adapter.c
++++ b/src/adapter.c
+@@ -93,7 +93,7 @@
+ 
+ #define CONN_SCAN_TIMEOUT (3)
+ #define IDLE_DISCOV_TIMEOUT (5)
+-#define TEMP_DEV_TIMEOUT (30)
++#define TEMP_DEV_TIMEOUT (3 * 30)
+ #define BONDING_TIMEOUT (2 * 60)
+ 
+ #define SCAN_TYPE_BREDR (1 << BDADDR_BREDR)
+@@ -1888,8 +1888,10 @@ static void discovery_cleanup(struct btd_adapter *adapter)
+ 
+ 		next = g_slist_next(l);
+ 
+-		if (device_is_temporary(dev) && !device_is_connectable(dev))
++		if (device_is_temporary(dev) && !device_is_connectable(dev)) {
++			DBG("Removing the device interface");
+ 			btd_adapter_remove_device(adapter, dev);
++		}
+ 	}
+ 
+ 	adapter->temp_devices_timeout = g_timeout_add_seconds(TEMP_DEV_TIMEOUT,
+diff --git a/src/device.c b/src/device.c
+index 802a732..2d4529c 100644
+--- a/src/device.c
++++ b/src/device.c
+@@ -5495,13 +5495,24 @@ void device_set_flags(struct btd_device *device, uint8_t flags)
+ 	if (!device)
+ 		return;
+ 
+-	DBG("flags %d", flags);
++	DBG("flags %d apperance %d", flags,device->appearance);
++
++	/* Setting the Limited and General discoverable flags
++	 * to mark the LE gamepad devices as connectable
++	 * */
++	if (flags == 0x00 && device->appearance == HID_LE_GAMEPAD_APPEARANCE) {
++		DBG("Setting the Limited and General discoverable flags");
++		device->ad_flags[0] |= ADV_FLAG_LE_LIMITED_DISC_MODE;
++		device->ad_flags[0] |= ADV_FLAG_LE_GENERAL_DISC_MODE;
++		goto done;
++	}
+ 
+ 	if (device->ad_flags[0] == flags)
+ 		return;
+ 
+ 	device->ad_flags[0] = flags;
+ 
++done:
+ 	g_dbus_emit_property_changed(dbus_conn, device->path,
+ 					DEVICE_INTERFACE, "AdvertisingFlags");
+ }
+diff --git a/src/device.h b/src/device.h
+index a54b43a..0347473 100644
+--- a/src/device.h
++++ b/src/device.h
+@@ -22,7 +22,10 @@
+  *
+  */
+ 
+-#define DEVICE_INTERFACE	"org.bluez.Device1"
++#define DEVICE_INTERFACE		"org.bluez.Device1"
++#define HID_LE_GAMEPAD_APPEARANCE 	0x3c4
++#define ADV_FLAG_LE_LIMITED_DISC_MODE	0x01
++#define ADV_FLAG_LE_GENERAL_DISC_MODE	0x02
+ 
+ struct btd_device;
+ 

@@ -1,0 +1,27 @@
+#########################################################################
+Date: Nov 5, 2024 09:30 PM
+From:
+Subject: DELIA-66919 - Intermittently pairing got failed...
+Source: Sky
+License:
+Upstream-Status: Pending
+Signed-off-by: jack.ogorman@sky.uk
+#########################################################################
+diff --git a/src/adapter.c b/src/adapter.c
+index f97ee033b..398227ab2 100755
+--- a/src/adapter.c
++++ b/src/adapter.c
+@@ -1896,9 +1896,10 @@ static void stop_discovery_complete(uint8_t status, uint16_t length,
+ 
+ 	if (status != MGMT_STATUS_SUCCESS) {
+ 		if (client->msg) {
+-			reply = btd_error_busy(client->msg);
+-			g_dbus_send_message(dbus_conn, reply);
+-			if (status == MGMT_STATUS_INVALID_PARAMS || status == MGMT_STATUS_REJECTED) {
++			error("Received an error status from kernel on stop discovery");
++			// reply = btd_error_busy(client->msg); //DELIA-66919 - Do not share error here, we will fix any issues once scan is next started
++			// g_dbus_send_message(dbus_conn, reply);
++			if (status == MGMT_STATUS_INVALID_PARAMS || status == MGMT_STATUS_REJECTED || status == MGMT_STATUS_BUSY) {
+ 				DBG("Invalid params received, setting flag to prevent getting stuck");
+ 				adapter->scan_stuck = true;
+ 				//resetting information for adapter to reflect that it is no longer discovering

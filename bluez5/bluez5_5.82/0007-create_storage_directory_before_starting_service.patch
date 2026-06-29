@@ -1,0 +1,22 @@
+##################################################################
+Date: Tue Feb 18 17:12:03 2020 +0000
+From:
+Subject: [PATCH] Create storage directory before starting service (GENERIC part)
+Source: SKY
+Upstream-Status: Pending
+Signed-off-by: Tijo Thomas John <tijo.thomas@sky.uk>
+##################################################################
+
+--- a/src/bluetooth.service.in
++++ b/src/bluetooth.service.in
+@@ -8,6 +8,10 @@
+ [Service]
+ Type=dbus
+ BusName=org.bluez
++
++ExecStartPre=/bin/mkdir -p /var/lib/bluetooth
++ExecStartPre=/bin/mkdir -p /opt/lib/bluetooth
++
+ ExecStart=/usr/lib/bluez5/bluetooth/bluetoothd -d
+ NotifyAccess=main
+ #WatchdogSec=10

@@ -1,0 +1,47 @@
+#########################################################################
+Date: Nov 9, 2023 13:19 PM
+Source: Sky
+Upstream-Status: Pending
+Signed-off-by: Jack O'Gorman <jack.ogorman@sky.uk>
+#########################################################################
+
+Index: bluez-5.76/src/device.c
+===================================================================
+--- bluez-5.76.orig/src/device.c
++++ bluez-5.76/src/device.c
+@@ -2590,6 +2590,17 @@ static DBusMessage *dev_connect(DBusConn
+ 	else
+ 		bdaddr_type = select_conn_bearer(dev);
+ 
++        //SKY: Necessary to check that bluez selects classic for audio devices which also have le advertisement
++        if (dev->bredr && dev->le)
++        {
++            DBG("Dual mode device of class %d, bluez selected type %d to connect\n", (dev->class >> 8) & 0x1f, bdaddr_type);
++            if (((dev->class >> 8) & 0x1f) == 4)
++            {
++                 DBG("Dual mode device is an audio device, forcing transport as classic");
++                 bdaddr_type = BDADDR_BREDR;
++            }
++        }
++
+ 	if (bdaddr_type != BDADDR_BREDR) {
+ 		int err;
+ 
+@@ -3086,6 +3097,17 @@ static DBusMessage *pair_device(DBusConn
+ 
+ 	state = get_state(device, bdaddr_type);
+ 
++           //SKY: Necessary to check that bluez selects classic for audio devices which also have le advertisement
++        if (device->bredr && device->le)
++        {
++            DBG("Dual mode device of class %d, bluez selected type %d to connect\n", (device->class >> 8) & 0x1f, bdaddr_type);
++            if (((device->class >> 8) & 0x1f) == 4)
++            {
++                 DBG("Dual mode device is an audio device, forcing transport as classic");
++                 bdaddr_type = BDADDR_BREDR;
++             }
++        }
++
+ 	if (state->bonded)
+ 		return btd_error_already_exists(msg);
+ 

@@ -1,0 +1,19 @@
+#########################################################################
+Date: Apr 23, 2021 13:19 PM
+Source: Comcast
+Upstream-Status: Pending
+Signed-off-by: Eugene Gallagher <eugene_gallagher@comcast.com>
+#########################################################################
+Index: bluez-5.75/src/bluetooth.service.in
+===================================================================
+--- bluez-5.75.orig/src/bluetooth.service.in
++++ bluez-5.75/src/bluetooth.service.in
+@@ -8,7 +8,7 @@ ConditionPathIsDirectory=/sys/class/blue
+ [Service]
+ Type=dbus
+ BusName=org.bluez
+-ExecStart=@PKGLIBEXECDIR@/bluetoothd
++ExecStart=/usr/lib/bluez5/bluetooth/bluetoothd -d
+ NotifyAccess=main
+ #WatchdogSec=10
+ Restart=always

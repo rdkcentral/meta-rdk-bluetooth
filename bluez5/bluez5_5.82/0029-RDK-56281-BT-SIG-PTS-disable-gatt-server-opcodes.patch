@@ -1,0 +1,69 @@
+#####################################################################
+Date: Tue, 4 Feb 2025 20:00:00 +0000
+From: Theo Anderson <theo.anderson@sky.uk>
+Subject: [PATCH] Prevent the gatt-server from registering certain opcodes.
+
+This will cause the server to respond with ATT Error Response (Request Not Supported).
+This is needed to PASS GATT/SR/UNS/BI-01-C [Unsupported ATT Requests on Server].
+
+Source: Sky
+License:
+Upstream-Status: Pending
+Signed-off-by: Theo Anderson <theo.anderson@sky.uk>
+#####################################################################
+
+Index: bluez-5.80/src/shared/gatt-server.c
+===================================================================
+--- bluez-5.80.orig/src/shared/gatt-server.c
++++ bluez-5.80/src/shared/gatt-server.c
+@@ -1568,19 +1568,21 @@ static bool gatt_server_register_att_han
+ 		return false;
+ 
+ 	/* Write Request */
+-	server->write_id = bt_att_register(server->att, BT_ATT_OP_WRITE_REQ,
++	/*server->write_id = bt_att_register(server->att, BT_ATT_OP_WRITE_REQ,
+ 								write_cb,
+ 								server, NULL);
+ 	if (!server->write_id)
+ 		return false;
++*/
+ 
+ 	/* Write Command */
+-	server->write_cmd_id = bt_att_register(server->att, BT_ATT_OP_WRITE_CMD,
++	/*server->write_cmd_id = bt_att_register(server->att, BT_ATT_OP_WRITE_CMD,
+ 								write_cb,
+ 								server, NULL);
+ 	if (!server->write_cmd_id)
+ 		return false;
+ 
++	*/
+ 	/* Read Request */
+ 	server->read_id = bt_att_register(server->att, BT_ATT_OP_READ_REQ,
+ 								read_cb,
+@@ -1589,15 +1591,16 @@ static bool gatt_server_register_att_han
+ 		return false;
+ 
+ 	/* Read Blob Request */
+-	server->read_blob_id = bt_att_register(server->att,
++/*	server->read_blob_id = bt_att_register(server->att,
+ 							BT_ATT_OP_READ_BLOB_REQ,
+ 							read_blob_cb,
+ 							server, NULL);
+ 	if (!server->read_blob_id)
+ 		return false;
+ 
++*/
+ 	/* Read Multiple Request */
+-	server->read_multiple_id = bt_att_register(server->att,
++/*	server->read_multiple_id = bt_att_register(server->att,
+ 							BT_ATT_OP_READ_MULT_REQ,
+ 							read_multiple_cb,
+ 							server, NULL);
+@@ -1605,6 +1608,7 @@ static bool gatt_server_register_att_han
+ 	if (!server->read_multiple_id)
+ 		return false;
+ 
++*/
+ 	/* Read Multiple Variable Length Request */
+ 	server->read_multiple_vl_id = bt_att_register(server->att,
+ 						BT_ATT_OP_READ_MULT_VL_REQ,

@@ -1,0 +1,49 @@
+#########################################################################
+Date: Dec 20, 2024 13:19 PM
+Source: Sky
+Upstream-Status: Pending
+Signed-off-by: Ananth Marimuthu <ananth_marimuthu2@comcast.com>
+#########################################################################
+
+Index: bluez-5.77/profiles/audio/a2dp.c
+===================================================================
+--- bluez-5.77.orig/profiles/audio/a2dp.c
++++ bluez-5.77/profiles/audio/a2dp.c
+@@ -228,6 +228,9 @@ static void setup_free(struct a2dp_setup
+ 
+ static void setup_unref(struct a2dp_setup *setup)
+ {
++        if (setup->ref == 0)
++            return;
++
+ 	setup->ref--;
+ 
+ 	DBG("%p: ref=%d", setup, setup->ref);
+Index: bluez-5.77/profiles/audio/avdtp.c
+===================================================================
+--- bluez-5.77.orig/profiles/audio/avdtp.c
++++ bluez-5.77/profiles/audio/avdtp.c
+@@ -727,8 +727,11 @@ static void stream_free(void *data)
+ 	struct avdtp_stream *stream = data;
+ 	struct avdtp_remote_sep *rsep;
+ 
+-	stream->lsep->info.inuse = 0;
+-	stream->lsep->stream = NULL;
++        if (stream->lsep) {
++	    stream->lsep->info.inuse = 0;
++            if (stream->lsep->stream)
++	        stream->lsep->stream = NULL;
++        }
+ 
+ 	rsep = find_remote_sep(stream->session->seps, stream->rseid);
+ 	if (rsep)
+@@ -1220,6 +1223,9 @@ void avdtp_unref(struct avdtp *session)
+ 	if (!session)
+ 		return;
+ 
++        if (session->ref == 0)
++            return;
++
+ 	session->ref--;
+ 
+ 	DBG("%p: ref=%d", session, session->ref);

@@ -1,0 +1,35 @@
+###################################################################################################
+Date: Dec 20, 2024 13:19 PM
+
+Subject: [PATCH] Set auto connect for the BLE devices
+	Auto connect is not set for the BLE GATT devices in bluez 5.76 even configured 
+	AutoEnable=true in the main.conf file. Because of this issue auto connect not happened
+	for the BLE devices so, set the auto connect to fix the issue. Need to revert this patch
+	once identify why auto connect not set in the bluez 5.76.
+
+Source: Sky
+Upstream-Status: Pending
+Signed-off-by: Ananth Marimuthu <ananth_marimuthu2@comcast.com>
+###################################################################################################
+
+Index: bluez-5.76/src/device.c
+===================================================================
+--- bluez-5.76.orig/src/device.c
++++ bluez-5.76/src/device.c
+@@ -4911,6 +4911,16 @@ static struct btd_service *probe_service
+ 	if (l)
+ 		return NULL;
+ 
++    if (!profile->auto_connect) {
++        DBG("BREDR device states connect:%d bond:%d paired:%d",device->bredr_state.connected, device->bredr_state.bonded,device->bredr_state.paired);
++        DBG("LE device states connect:%d bond:%d paired:%d",device->le_state.connected, device->le_state.bonded,device->le_state.paired);
++        if((device->bredr_state.connected && device->bredr_state.bonded && device->bredr_state.paired) || (device->le_state.connected)) {
++            profile->auto_connect = TRUE;
++            device->disable_auto_connect = FALSE;
++            DBG("comcast set auto connect:%d disable auto connect:%d temp:%d",profile->auto_connect,device->disable_auto_connect,device->temporary);
++        }
++    }
++
+ 	service = service_create(device, profile);
+ 
+ 	if (service_probe(service)) {

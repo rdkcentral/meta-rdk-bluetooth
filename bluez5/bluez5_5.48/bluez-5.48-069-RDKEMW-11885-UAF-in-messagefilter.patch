@@ -1,0 +1,79 @@
+##################################################################
+Date: Mar 02, 2026 13:39
+From:
+Subject: [PATCH] bluez crash fix
+Source: Sky
+License:
+Upstream-Status:
+Signed-off-by: ppalan289 <preethi_palanisamy@comcast.com>
+###################################################################
+Index: bluez-5.48/gdbus/watch.c
+===================================================================
+--- bluez-5.48.orig/gdbus/watch.c
++++ bluez-5.48/gdbus/watch.c
+@@ -523,11 +523,17 @@ static DBusHandlerResult message_filter(
+ 	member = dbus_message_get_member(message);
+ 	dbus_message_get_args(message, NULL, DBUS_TYPE_STRING, &arg, DBUS_TYPE_INVALID);
+ 
+-	/* If sender != NULL it is always the owner */
++        error("Hitting message_filter\n");
+ 
++	/* If sender != NULL it is always the owner */
+ 	for (current = listeners; current != NULL; current = current->next) {
+ 		data = current->data;
+ 
++                if (data == NULL) {
++                    error("Filter_data is NULL.\n");
++                    continue;
++                }
++
+ 		if (connection != data->connection)
+ 			continue;
+ 
+@@ -570,16 +576,41 @@ static DBusHandlerResult message_filter(
+ 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+ 
+ 	for (current = delete_listener; current != NULL;
+-					current = delete_listener->next) {
++					current = current->next) {
+ 		GSList *l = current->data;
+ 
++                error("next is from current, instead delete_listener\n");
++
++                if(l == NULL) {
++                    error("Listener node is NULL; skipping\n");
++                    continue;
++                }
++
+ 		data = l->data;
+ 
+-		/* Has any other callback added callbacks back to this data? */
+-		if (data->callbacks != NULL)
+-			continue;
++                /* ToDo: Check the feasibility for calling g_slist_delete_link()
++                   after checking if l is present in listeners, using
++                   g_slist_delete_link. */
++
++                if (data == NULL) {
++                    error("Invalid filter_data: removing stale listener node\n");
++                    listeners = g_slist_delete_link(listeners, l);
++                    continue;
++                }
++
++                /* Has any other callback added callbacks back to this data? */
++                if (data->callbacks != NULL) {
++                    error("Callback is still in use, loop continues for next node\n");
++                    continue;
++                }
++
++                if ((data->connection != NULL) && (!remove_match(data))) {
++                    error("remove_match failed; skipping local cleanup to avoid dangling remote match\n");
++                    continue;
++                }
++
++                error("Deleting current listener\n");
+ 
+-		remove_match(data);
+ 		listeners = g_slist_delete_link(listeners, l);
+ 
+ 		filter_data_free(data);
