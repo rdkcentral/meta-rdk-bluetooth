@@ -1,0 +1,15 @@
+Index: bluez-5.48/lib/uuid.c
+===================================================================
+--- bluez-5.48.orig/lib/uuid.c
++++ bluez-5.48/lib/uuid.c
+@@ -127,6 +127,10 @@ int bt_uuid_cmp(const bt_uuid_t *uuid1,
+ {
+ 	bt_uuid_t u1, u2;
+ 
++        if (!uuid2 || uuid2->type == BT_UUID_UNSPEC) {
++              return -EINVAL;
++        }
++
+ 	bt_uuid_to_uuid128(uuid1, &u1);
+ 	bt_uuid_to_uuid128(uuid2, &u2);
+ 

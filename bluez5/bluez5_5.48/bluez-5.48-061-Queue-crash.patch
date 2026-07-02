@@ -1,0 +1,91 @@
+###################################################################################################
+Date: Thu, 13 Mar 2025 
+
+Subject: Observing bluetooth queue_remove crash
+
+NULL checks added to avoid dereferrencing NULL pointers
+
+Source: Bluez open source
+Upstream-Status: Pending
+Signed-off-by: Tharun Kumar Venkatachalem <tharunkumar_venkatachalem@comcast.com>
+###################################################################################################
+Index: bluez-5.48/src/gatt-client.c
+===================================================================
+--- bluez-5.48.orig/src/gatt-client.c
++++ bluez-5.48/src/gatt-client.c
+@@ -1107,6 +1107,9 @@ static bool chrc_pipe_read(struct io *io
+ 
+ static void pipe_io_destroy(struct pipe_io *io)
+ {
++	if(!io)
++		return;
++
+ 	if (io->destroy)
+ 		io->destroy(io->data);
+ 
+@@ -1487,6 +1490,9 @@ static void notify_io_destroy(void *data
+ {
+ 	struct notify_client *client = data;
+ 
++	if (!client || !client->chrc)
++		return;
++
+ 	if (queue_remove(client->chrc->notify_clients, client))
+ 		notify_client_unref(client);
+ }
+@@ -1692,6 +1698,9 @@ static void remove_client(void *data)
+ 
+ static void characteristic_free(void *data)
+ {
++	if (!data)
++		return;
++
+ 	struct characteristic *chrc = data;
+ 
+ 	/* List should be empty here */
+@@ -1700,11 +1709,13 @@ static void characteristic_free(void *da
+ 	if (chrc->write_io) {
+ 		queue_remove(chrc->service->client->ios, chrc->write_io->io);
+ 		pipe_io_destroy(chrc->write_io);
++		chrc->write_io = NULL;
+ 	}
+ 
+ 	if (chrc->notify_io) {
+ 		queue_remove(chrc->service->client->ios, chrc->notify_io->io);
+ 		pipe_io_destroy(chrc->notify_io);
++		chrc->notify_io = NULL;
+ 	}
+ 
+ 	queue_destroy(chrc->notify_clients, remove_client);
+@@ -1923,6 +1934,9 @@ static void unregister_service(void *dat
+ 	struct service *service = data;
+ 	struct btd_gatt_client *client = service->client;
+ 
++	if (!service || !client)
++		return;
++
+ 	DBG("Removing GATT service: %s", service->path);
+ 
+ 	queue_remove_all(service->chrcs, NULL, NULL, unregister_characteristic);
+Index: bluez-5.48/src/shared/queue.c
+===================================================================
+--- bluez-5.48.orig/src/shared/queue.c
++++ bluez-5.48/src/shared/queue.c
+@@ -250,7 +250,7 @@ bool queue_remove(struct queue *queue, v
+ {
+ 	struct queue_entry *entry, *prev;
+ 
+-	if (!queue)
++	if (!queue || !data || !queue->head)
+ 		return false;
+ 
+ 	for (entry = queue->head, prev = NULL; entry;
+@@ -318,7 +318,7 @@ unsigned int queue_remove_all(struct que
+ 	struct queue_entry *entry;
+ 	unsigned int count = 0;
+ 
+-	if (!queue)
++	if (!queue || !queue->head)
+ 		return 0;
+ 
+ 	entry = queue->head;

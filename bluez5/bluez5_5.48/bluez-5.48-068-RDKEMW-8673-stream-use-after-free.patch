@@ -1,0 +1,39 @@
+Index: bluez-5.48/profiles/audio/avdtp.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/avdtp.c
++++ bluez-5.48/profiles/audio/avdtp.c
+@@ -707,6 +707,11 @@ static void stream_free(void *data)
+ 	struct avdtp_stream *stream = data;
+ 	struct avdtp_remote_sep *rsep;
+ 
++        if(!stream) {
++            error("stream is NULL");
++            return;
++        }
++
+ 	if (stream->lsep) {
+             stream->lsep->info.inuse = 0;
+             if (stream->lsep->stream)
+@@ -1020,8 +1025,11 @@ static void avdtp_sep_set_state(struct a
+ 		cb->cb(stream, old_state, state, err_ptr, cb->user_data);
+ 	}
+ 
+-	if (state == AVDTP_STATE_IDLE)
+-		stream_free(stream);
++	if (state == AVDTP_STATE_IDLE) {
++                DBG("stream_free is called");
++                stream_free(stream);
++                sep->stream = NULL;
++        }
+ }
+ 
+ static void finalize_discovery(struct avdtp *session, int err)
+@@ -1441,8 +1449,6 @@ static void setconf_cb(struct avdtp *ses
+ 
+ 	if (!session) {
+ 		error("session is NULL");
+-		if(stream)
+-			stream_free(stream);
+ 		return;
+ 	}
+ 

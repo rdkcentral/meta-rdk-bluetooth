@@ -1,0 +1,39 @@
+Index: bluez-5.48/profiles/battery/battery.c
+===================================================================
+--- bluez-5.48.orig/profiles/battery/battery.c
++++ bluez-5.48/profiles/battery/battery.c
+@@ -248,6 +248,7 @@ static void batt_remove(struct btd_servi
+ 	struct btd_device *device = btd_service_get_device(service);
+ 	struct batt *batt;
+ 	char addr[18];
++	struct bt_gatt_client *client = btd_device_get_gatt_client(device);
+ 
+ 	ba2str(device_get_address(device), addr);
+ 	DBG("BATT profile remove (%s)", addr);
+@@ -258,6 +259,8 @@ static void batt_remove(struct btd_servi
+ 		return;
+ 	}
+ 
++	DBG("notify_id: %d", batt->batt_level_cb_id);
++	bt_gatt_client_unregister_notify(client, batt->batt_level_cb_id);
+ 	batt_free(batt);
+ }
+ 
+Index: bluez-5.48/profiles/audio/avdtp.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/avdtp.c
++++ bluez-5.48/profiles/audio/avdtp.c
+@@ -1425,6 +1425,13 @@ static void setconf_cb(struct avdtp *ses
+ 	struct conf_rej rej;
+ 	struct avdtp_local_sep *sep;
+ 
++	if (!session) {
++		error("session is NULL");
++		if(stream)
++			stream_free(stream);
++		return;
++	}
++
+ 	if (err != NULL) {
+ 		rej.error = AVDTP_UNSUPPORTED_CONFIGURATION;
+ 		rej.category = err->err.error_code;

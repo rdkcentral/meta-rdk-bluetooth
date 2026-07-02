@@ -1,0 +1,85 @@
+#####################################################################
+Date: Tue, 4 Feb 2025 20:00:00 +0000
+From: Theo Anderson <theo.anderson@sky.uk>
+Subject: [PATCH] Prevent the gatt-server from registering certain opcodes.
+
+This will cause the server to respond with ATT Error Response (Request Not Supported).
+This is needed to PASS GATT/SR/UNS/BI-01-C [Unsupported ATT Requests on Server].
+
+Source: Sky
+License:
+Upstream-Status: Pending
+Signed-off-by: Theo Anderson <theo.anderson@sky.uk>
+#####################################################################
+diff --git bluez-5.48/src/shared/gatt-server.c bluez-5.48/src/shared/gatt-server.c
+index 7c59b45..9367ae6 100644
+--- bluez-5.48/src/shared/gatt-server.c
++++ bluez-5.48/src/shared/gatt-server.c
+@@ -124,11 +124,11 @@ static void bt_gatt_server_free(struct bt_gatt_server *server)
+ 	bt_att_unregister(server->att, server->read_by_type_id);
+ 	bt_att_unregister(server->att, server->find_info_id);
+ 	bt_att_unregister(server->att, server->find_by_type_value_id);
+-	bt_att_unregister(server->att, server->write_id);
+-	bt_att_unregister(server->att, server->write_cmd_id);
++	/* bt_att_unregister(server->att, server->write_id); */
++	/* bt_att_unregister(server->att, server->write_cmd_id); */
+ 	bt_att_unregister(server->att, server->read_id);
+-	bt_att_unregister(server->att, server->read_blob_id);
+-	bt_att_unregister(server->att, server->read_multiple_id);
++	/* bt_att_unregister(server->att, server->read_blob_id); */
++	/* bt_att_unregister(server->att, server->read_multiple_id); */
+ 	bt_att_unregister(server->att, server->prep_write_id);
+ 	bt_att_unregister(server->att, server->exec_write_id);
+ 
+@@ -1446,20 +1446,24 @@ static bool gatt_server_register_att_handlers(struct bt_gatt_server *server)
+ 
+ 	if (!server->find_by_type_value_id)
+ 		return false;
+-
++	
+ 	/* Write Request */
++	/*
+ 	server->write_id = bt_att_register(server->att, BT_ATT_OP_WRITE_REQ,
+ 								write_cb,
+ 								server, NULL);
+ 	if (!server->write_id)
+ 		return false;
++	*/
+ 
+ 	/* Write Command */
++	/*
+ 	server->write_cmd_id = bt_att_register(server->att, BT_ATT_OP_WRITE_CMD,
+ 								write_cb,
+ 								server, NULL);
+ 	if (!server->write_cmd_id)
+ 		return false;
++	*/
+ 
+ 	/* Read Request */
+ 	server->read_id = bt_att_register(server->att, BT_ATT_OP_READ_REQ,
+@@ -1469,14 +1473,17 @@ static bool gatt_server_register_att_handlers(struct bt_gatt_server *server)
+ 		return false;
+ 
+ 	/* Read Blob Request */
++	/*
+ 	server->read_blob_id = bt_att_register(server->att,
+ 							BT_ATT_OP_READ_BLOB_REQ,
+ 							read_blob_cb,
+ 							server, NULL);
+ 	if (!server->read_blob_id)
+ 		return false;
++	*/
+ 
+ 	/* Read Multiple Request */
++	/*
+ 	server->read_multiple_id = bt_att_register(server->att,
+ 							BT_ATT_OP_READ_MULT_REQ,
+ 							read_multiple_cb,
+@@ -1484,6 +1491,7 @@ static bool gatt_server_register_att_handlers(struct bt_gatt_server *server)
+ 
+ 	if (!server->read_multiple_id)
+ 		return false;
++	*/
+ 
+ 	/* Prepare Write Request */
+ 	server->prep_write_id = bt_att_register(server->att,

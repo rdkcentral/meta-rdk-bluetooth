@@ -1,0 +1,59 @@
+Date: Fri, 18 Feb 2022 10:18:21 +0000
+From: James Dowdells <james.dowdells@sky.uk>
+Subject: [PATCH] RDKTV-14757: PR1 remote is NOT reconnecting after TV reboot
+Source: SKY
+Signed-off-by: James Dowdells;james.dowdells@sky.uk;
+
+--- a/src/textfile.c	2022-02-18 10:17:22.289858906 +0000
++++ b/src/textfile.c	2022-02-18 10:17:33.673850759 +0000
+@@ -37,8 +37,40 @@
+ #include <sys/mman.h>
+ #include <sys/param.h>
+ 
++#include "log.h"
+ #include "textfile.h"
+ 
++int fix_regular_file(const char *path)
++{
++    struct stat path_stat;
++    char filename[PATH_MAX + 1];
++    int result;
++
++    //
++    // RDKTV-14757: check for the situation where the config
++    // directory has been created as a file.  If it has
++    // delete the file before the directory is created
++    //
++
++    strcpy( filename, path );   // copy the path incase we change it
++
++    if (filename[strlen(filename)-1] == '/')    // check for trailing '/'
++    {
++        filename[strlen(filename)-1] = 0;       // remove trailing '/'
++    }
++
++    result = stat(filename, &path_stat);        // check for the file
++
++    if ((result == 0) &&  S_ISREG(path_stat.st_mode))   // if we have a regular file
++    {
++        // print a warning and deleted the file
++        DBG("ERROR: BLUEZ : %s : %d : Unexpected file exists: %s, remove before creating directory\n", __func__, __LINE__, filename );
++        remove( filename );
++    }
++
++    return 0;
++}
++
+ static int create_dirs(const char *filename, const mode_t mode)
+ {
+ 	struct stat st;
+@@ -65,6 +97,9 @@
+ 		}
+ 
+ 		strncat(dir, prev + 1, next - prev);
++
++		fix_regular_file( dir );	// Check for issue RDKTV-14757, dir created as a file already
++
+ 		mkdir(dir, mode);
+ 
+ 		prev = next;

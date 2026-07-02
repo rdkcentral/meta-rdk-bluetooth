@@ -1,0 +1,32 @@
+Date: Jul 14, 2022 2:30 PM
+From: f26304b302c33c476dd81a012819a81bc18db0ba Jul 14, 2022 2:30 PM
+Subject: [PATCH] RDKTV-18463 : Transport Volume change for A2DP
+
+	Emit Transport Volume change for A2DP
+    Even when a Player is not present emit volume changes related to 
+    AVRCP on the connected Transport path
+
+Source: COMCAST
+Signed-off-by: Chandresh Pitty <Chandresh_Pitty@cable.comcast.com>
+---
+
+Index: bluez-5.48/profiles/audio/avrcp.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/avrcp.c
++++ bluez-5.48/profiles/audio/avrcp.c
+@@ -3547,11 +3547,13 @@ static void avrcp_volume_changed(struct
+ 	struct avrcp_player *player = target_get_player(session);
+ 	uint8_t volume;
+ 
++	volume = pdu->params[1] & 0x7F;
++
++	media_transport_update_device_volume(session->dev, volume);
++
+ 	if (!player)
+ 		return;
+ 
+-	volume = pdu->params[1] & 0x7F;
+-
+ 	player->cb->set_volume(volume, session->dev, player->user_data);
+ }
+ 

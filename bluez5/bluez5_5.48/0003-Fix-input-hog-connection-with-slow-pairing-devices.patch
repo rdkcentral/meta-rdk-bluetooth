@@ -1,0 +1,19 @@
+diff --git a/profiles/input/hog.c b/profiles/input/hog.c
+index e0e9df27c..802a98042 100644
+--- a/profiles/input/hog.c
++++ b/profiles/input/hog.c
+@@ -195,7 +195,13 @@ static int hog_accept(struct btd_service *service)
+ 		client = btd_device_get_gatt_client(device);
+ 		if (!bt_gatt_client_set_security(client,
+ 						BT_ATT_SECURITY_MEDIUM)) {
+-			return -ECONNREFUSED;
++			DBG("Device may be refused connection due to not being able to elevate security level");
++			DBG("Security level: %d (minimum level: 2)", bt_gatt_client_get_security(client));
++			if (bt_gatt_client_get_security(client) < BT_ATT_SECURITY_MEDIUM)
++			{
++				error("Security level is too low to allow HoG device to connect, try bonding device");
++				return -ECONNREFUSED;
++			}
+ 		}
+ 	}
+ 

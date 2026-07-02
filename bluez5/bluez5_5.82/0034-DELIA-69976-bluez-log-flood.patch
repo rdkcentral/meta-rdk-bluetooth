@@ -1,0 +1,13 @@
+Index: bluez-5.82/profiles/input/device.c
+===================================================================
+--- bluez-5.82.orig/profiles/input/device.c
++++ bluez-5.82/profiles/input/device.c
+@@ -354,8 +354,6 @@ static bool uhid_send_input_report(struc
+ 		return false;
+ 	}
+ 
+-	DBG("HID report (%zu bytes)", size);
+-
+ 	return true;
+ }
+ 

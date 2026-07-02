@@ -1,0 +1,30 @@
+Date: Jun 22, 2023
+From: shafi.ahmed@sky.uk <shafi.ahmed@sky.uk>
+Source: COMCAST
+Subject: Apple Airpods connection is not successful and it keeps showing Connecting status forever in Manage devices list
+Signed-off-by: shafi.ahmed@sky.uk <shafi.ahmed@sky.uk>
+diff -Naur bluez-5.48.orig/profiles/audio/a2dp.c bluez-5.48/profiles/audio/a2dp.c
+--- bluez-5.48.orig/profiles/audio/a2dp.c	2023-06-15 08:28:53.502378822 +0000
++++ bluez-5.48/profiles/audio/a2dp.c	2023-06-15 08:30:10.731896093 +0000
+@@ -178,6 +178,8 @@
+ 
+ static void setup_unref(struct a2dp_setup *setup)
+ {
++        if (setup->ref == 0)
++                return;
+ 	setup->ref--;
+ 
+ 	DBG("%p: ref=%d", setup, setup->ref);
+diff -Naur bluez-5.48.orig/profiles/audio/avdtp.c bluez-5.48/profiles/audio/avdtp.c
+--- bluez-5.48.orig/profiles/audio/avdtp.c	2023-06-15 08:28:53.502378822 +0000
++++ bluez-5.48/profiles/audio/avdtp.c	2023-06-15 08:33:50.492153997 +0000
+@@ -1176,6 +1176,9 @@
+ 	if (!session)
+ 		return;
+ 
++        if (session->ref == 0)
++                return;
++
+ 	session->ref--;
+ 
+ 	DBG("%p: ref=%d", session, session->ref);

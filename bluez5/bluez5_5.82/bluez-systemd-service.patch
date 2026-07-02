@@ -1,0 +1,31 @@
+#########################################################################
+Date: Dec 20, 2024 13:19 PM
+Source: Sky
+Upstream-Status: Pending
+Signed-off-by: Ananth Marimuthu <ananth_marimuthu2@comcast.com>
+#########################################################################
+
+diff -Naur bluez-5.65/src/bluetooth.service.in bluez-5.65_mod/src/bluetooth.service.in
+--- bluez-5.65/src/bluetooth.service.in	2022-07-24 21:02:15.000000000 +0000
++++ bluez-5.65_mod/src/bluetooth.service.in	2023-02-15 22:05:05.934141834 +0000
+@@ -13,20 +13,6 @@
+ CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+ LimitNPROC=1
+ 
+-# Filesystem lockdown
+-ProtectHome=true
+-ProtectSystem=strict
+-PrivateTmp=true
+-ProtectKernelTunables=true
+-ProtectControlGroups=true
+-StateDirectory=bluetooth
+-StateDirectoryMode=0700
+-ConfigurationDirectory=bluetooth
+-ConfigurationDirectoryMode=0555
+-
+-# Execute Mappings
+-MemoryDenyWriteExecute=true
+-
+ # Privilege escalation
+ NoNewPrivileges=true
+ 

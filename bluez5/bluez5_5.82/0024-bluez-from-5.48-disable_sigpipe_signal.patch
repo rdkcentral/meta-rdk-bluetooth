@@ -1,0 +1,43 @@
+###################################################################################################
+Date: Fri, 7 Dec 2018 14:27:46 +0000
+From 5e47158c36933e0275bb3d1ab2094aa28c3c29fc Mon Sep 17 00:00:00 2001
+From: Ben Gray <ben.gray@sky.uk>
+
+Subject: [PATCH] Disable SIGPIPE signal.
+
+This patch disables the SIGPIPE signal.  Although this is not strictly required
+it does help us avoid situations were bugs in the BleRcuDaemon can cause the
+bluetoothd to terminate.
+
+The problem happens when our code acquires a notification pipe, but then for
+whatever reason shuts the pipe, if bluez then tries to write to the pipe it will
+generate a SIGPIPE signal and terminate.  By disabling the signal it just means
+the write to the pipe will fail with an error which will be logged by bluez.
+
+Source: SKY
+Upstream-Status: Pending
+Signed-off-by: Tijo Thomas John <tijo.thomas@sky.uk>
+###################################################################################################
+
+Index: bluez-5.66/src/main.c
+===================================================================
+--- bluez-5.66.orig/src/main.c
++++ bluez-5.66/src/main.c
+@@ -1232,6 +1232,17 @@ int main(int argc, char *argv[])
+ 		exit(0);
+ 	}
+ 
++/* [Sky] Ignore SIGPIPE signals - we use pipes for GATT notifications and w * ould rather an error is logged if the pipe write fails rather than bluet * oothd terminating*/
++#ifdef HAVE_SIGSET
++    sigset(SIGPIPE, SIG_IGN);
++#elif defined(HAVE_SIGACTION)
++    memset(&action, 0, sizeof(action));
++    action.sa_handler = SIG_IGN;
++    sigaction(SIGPIPE, &action, NULL);
++#else
++    signal(SIGPIPE, SIG_IGN);
++#endif /* HAVE_SIGSET */    
++
+ 	umask(0077);
+ 
+ 	btd_backtrace_init();

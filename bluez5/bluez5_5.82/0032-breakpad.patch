@@ -1,0 +1,83 @@
+##################################################################################
+Date: Thur, 17 Nov 2022 12:06:11 +0000
+From: 31ba3d3545e3e107d8e189d0a260c164add683d0 Mon Sep 17 00:00:00 2001
+Subject: [PATCH] RDK-22498, RDK-27733 : Add support for minidumps in Bluetooth
+        Add support for minidumps in Bluetooth module.
+Source: COMCAST
+License: LGPL-2.0-or-later
+Upstream-Status: Pending
+Signed-off-by: Arjun <arjun_daasuramdass@comcast.com>
+Date: Thur, 17 Nov 2022 12:06:11 +0000
+##################################################################################
+
+Index: bluez-5.82/configure.ac
+===================================================================
+--- bluez-5.82.orig/configure.ac
++++ bluez-5.82/configure.ac
+@@ -157,6 +157,25 @@ if (test "${enable_backtrace}" = "yes");
+ 	AC_SUBST(BACKTRACE_LIBS)
+ fi
+ 
++# Check for breakpad
++BREAKPAD_CFLAGS=" "
++BREAKPAD_LFLAGS=" "
++AC_ARG_ENABLE([breakpad],
++        AS_HELP_STRING([--enable-breakpad],[enable breakpad support (default is no)]),
++        [
++            case "${enableval}" in
++             yes) BREAKPAD_CFLAGS="-DINCLUDE_BREAKPAD"
++                    BREAKPAD_LFLAGS="-lbreakpadwrapper";;
++             no) AC_MSG_ERROR([breakpad is disabled]) ;;
++             *) AC_MSG_ERROR([bad value ${enableval} for --enable-breakpad]) ;;
++             esac
++             ],
++            [echo "breakpad is disabled"])
++
++AC_SUBST(BREAKPAD_CFLAGS)
++AC_SUBST(BREAKPAD_LFLAGS)
++
++
+ AC_ARG_ENABLE(library, AS_HELP_STRING([--enable-library],
+ 		[install Bluetooth library]), [enable_library=${enableval}])
+ AM_CONDITIONAL(LIBRARY, test "${enable_library}" = "yes")
+Index: bluez-5.82/Makefile.am
+===================================================================
+--- bluez-5.82.orig/Makefile.am
++++ bluez-5.82/Makefile.am
+@@ -25,8 +25,8 @@ pkgincludedir = $(includedir)/bluetooth
+ pkginclude_HEADERS =
+ 
+ AM_CFLAGS = $(MISC_CFLAGS) $(WARNING_CFLAGS) $(UDEV_CFLAGS) $(LIBEBOOK_CFLAGS) \
+-				$(LIBEDATASERVER_CFLAGS) $(ell_cflags)
+-AM_LDFLAGS = $(MISC_LDFLAGS)
++				$(LIBEDATASERVER_CFLAGS) $(ell_cflags) $(BREAKPAD_CFLAGS)
++AM_LDFLAGS = $(MISC_LDFLAGS) $(BREAKPAD_LFLAGS)
+ 
+ confdir = $(sysconfdir)/bluetooth
+ statedir = $(localstatedir)/lib/bluetooth
+Index: bluez-5.82/src/main.c
+===================================================================
+--- bluez-5.82.orig/src/main.c
++++ bluez-5.82/src/main.c
+@@ -57,6 +57,10 @@
+ #include "profile.h"
+ #include "storage.h"
+ 
++#ifdef INCLUDE_BREAKPAD
++#include "breakpad_wrapper.h"
++#endif
++
+ #define BLUEZ_NAME "org.bluez"
+ 
+ #define DEFAULT_PAIRABLE_TIMEOUT           0 /* disabled */
+@@ -1510,6 +1514,10 @@ int main(int argc, char *argv[])
+ 
+ 	btd_backtrace_init();
+ 
++    #ifdef INCLUDE_BREAKPAD
++        breakpad_ExceptionHandler();
++    #endif
++
+ 	mainloop_init();
+ 
+ 	__btd_log_init(option_debug, option_detach);

@@ -1,0 +1,63 @@
+###################################################################################################
+Date: Mon, 17 Feb 2024 20:00:00
+
+Subject: Auto connect flags were not updated properly post DEEPSLEEP.
+
+Post waking up from DEEPSLEEP blewakeup enabler added the LE gamepads to
+kernel autoconnect list, so updated the autoconnect flags on incoming connection.
+
+Source: Bluez open source
+Upstream-Status: Pending
+Signed-off-by: Natraj Muthusamy <Natraj_Muthusamy@comcast.com>
+###################################################################################################
+diff --git a/src/device.c b/src/device.c
+index 43f257f..2db1e65 100644
+--- a/src/device.c
++++ b/src/device.c
+@@ -1502,6 +1502,15 @@ static void device_set_auto_connect(struct btd_device *device, gboolean enable)
+ 	adapter_connect_list_add(device->adapter, device);
+ }
+ 
++void device_enable_auto_connect_hid_devices(struct btd_device *device, gboolean enable)
++{
++	if (device->appearance == HID_LE_GAMEPAD_APPEARANCE &&
++			!device->auto_connect &&
++			device->disable_auto_connect) {
++		device_set_auto_connect(device,enable);
++	}
++}
++
+ static DBusMessage *dev_disconnect(DBusConnection *conn, DBusMessage *msg,
+ 							void *user_data)
+ {
+diff --git a/src/device.h b/src/device.h
+index 0347473..6f240e1 100644
+--- a/src/device.h
++++ b/src/device.h
+@@ -133,6 +133,7 @@ void device_add_connection(struct btd_device *dev, uint8_t bdaddr_type);
+ void device_remove_connection(struct btd_device *device, uint8_t bdaddr_type);
+ void device_request_disconnect(struct btd_device *device, DBusMessage *msg);
+ bool device_is_disconnecting(struct btd_device *device);
++void device_enable_auto_connect_hid_devices(struct btd_device *device, gboolean enable);
+ 
+ typedef void (*disconnect_watch) (struct btd_device *device, gboolean removal,
+ 					void *user_data);
+diff --git a/src/gatt-database.c b/src/gatt-database.c
+index bdb08be..fbd48b7 100644
+--- a/src/gatt-database.c
++++ b/src/gatt-database.c
+@@ -596,6 +596,14 @@ static void connect_cb(GIOChannel *io, GError *gerr, gpointer user_data)
+ 	if (!device)
+ 		return;
+ 
++	/* Re-enabling auto-connect for LE HID devices to update the
++	 * auto-connect flags in the device structure if not updated
++	 * This is necessary if the device was added to the kernel's
++	 * auto-connect list upon waking from DEEPSLEEP through the
++	 * blewakeup enabler.
++	 */
++	device_enable_auto_connect_hid_devices(device, TRUE);
++
+ 	device_attach_att(device, io);
+ }
+ 

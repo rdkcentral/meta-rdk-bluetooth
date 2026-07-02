@@ -1,0 +1,169 @@
+#########################################################################
+Date: Dec 20, 2024 13:19 PM
+Source: Sky
+Upstream-Status: Pending
+Signed-off-by: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
+#########################################################################
+
+Index: bluez-5.76/src/agent.c
+===================================================================
+--- bluez-5.76.orig/src/agent.c
++++ bluez-5.76/src/agent.c
+@@ -205,7 +205,7 @@ void agent_unref(struct agent *agent)
+ 	if (agent->ref > 0)
+ 		return;
+ 
+-	if (agent->request) {
++	if (agent->request && agent->request->cb) {
+ 		DBusError err;
+ 		agent_pincode_cb pincode_cb;
+ 		agent_passkey_cb passkey_cb;
+@@ -239,7 +239,9 @@ void agent_unref(struct agent *agent)
+ 	}
+ 
+ 	g_free(agent->owner);
++        agent->owner = NULL;
+ 	g_free(agent->path);
++        agent->path = NULL;
+ 
+ 	g_free(agent);
+ }
+Index: bluez-5.76/src/shared/gatt-db.c
+===================================================================
+--- bluez-5.76.orig/src/shared/gatt-db.c
++++ bluez-5.76/src/shared/gatt-db.c
+@@ -154,6 +154,7 @@ static void pending_read_result(struct p
+ 	p->func(p->attrib, err, data, length, p->user_data);
+ 
+ 	free(p);
++        p = NULL;
+ }
+ 
+ static void pending_read_free(void *data)
+@@ -171,6 +172,7 @@ static void pending_write_result(struct
+ 	p->func(p->attrib, err, p->user_data);
+ 
+ 	free(p);
++        p = NULL;
+ }
+ 
+ static void pending_write_free(void *data)
+@@ -201,7 +203,9 @@ static void attribute_destroy(struct gat
+ 	queue_destroy(attribute->notify_list, attribute_notify_destroy);
+ 
+ 	free(attribute->value);
++        attribute->value = NULL;
+ 	free(attribute);
++        attribute = NULL;
+ }
+ 
+ static struct gatt_db_attribute *new_attribute(struct gatt_db_service *service,
+@@ -268,6 +272,7 @@ static void notify_destroy(void *data)
+ 		notify->destroy(notify->user_data);
+ 
+ 	free(notify);
++        notify = NULL;
+ }
+ 
+ static bool match_notify_id(const void *a, const void *b)
+@@ -436,7 +441,9 @@ static void gatt_db_service_destroy(void
+ 		attribute_destroy(service->attributes[i]);
+ 
+ 	free(service->attributes);
++        service->attributes = NULL;
+ 	free(service);
++        service = NULL;
+ }
+ 
+ static void gatt_db_destroy(struct gatt_db *db)
+@@ -1532,6 +1539,8 @@ void gatt_db_service_foreach(struct gatt
+ 		return;
+ 
+ 	service = attrib->service;
++        if(!service)
++           return;
+ 
+ 	for (i = 0; i < service->num_handles; i++) {
+ 		attr = service->attributes[i];
+@@ -1602,7 +1611,7 @@ void gatt_db_service_foreach_desc(struct
+ 	int index;
+ 	uint16_t i;
+ 
+-	if (!attrib || !func)
++	if (!attrib || !attrib->service || !func)
+ 		return;
+ 
+ 	attrib = gatt_db_attribute_get_value(attrib);
+Index: bluez-5.76/src/shared/att.c
+===================================================================
+--- bluez-5.76.orig/src/shared/att.c
++++ bluez-5.76/src/shared/att.c
+@@ -1140,6 +1140,9 @@ static void bt_att_free(struct bt_att *a
+ 	free(att->local_sign);
+ 	free(att->remote_sign);
+ 
++        att->local_sign = NULL;
++        att->remote_sign = NULL;
++
+ 	queue_destroy(att->req_queue, NULL);
+ 	queue_destroy(att->ind_queue, NULL);
+ 	queue_destroy(att->write_queue, NULL);
+@@ -1148,6 +1151,13 @@ static void bt_att_free(struct bt_att *a
+ 	queue_destroy(att->exchange_list, NULL);
+ 	queue_destroy(att->chans, bt_att_chan_free);
+ 
++        att->req_queue = NULL;
++        att->ind_queue = NULL;
++        att->write_queue = NULL;
++        att->notify_list = NULL;
++        att->disconn_list = NULL;
++        att->exchange_list = NULL;
++
+ 	free(att);
+ }
+ 
+Index: bluez-5.76/src/shared/gatt-client.c
+===================================================================
+--- bluez-5.76.orig/src/shared/gatt-client.c
++++ bluez-5.76/src/shared/gatt-client.c
+@@ -403,6 +403,12 @@ static void discovery_op_free(struct dis
+ 	queue_destroy(op->pending_svcs, NULL);
+ 	queue_destroy(op->pending_chrcs, free);
+ 	queue_destroy(op->ext_prop_desc, NULL);
++
++        op->discov_ranges = NULL;
++        op->pending_svcs = NULL;
++        op->pending_chrcs = NULL;
++        op->ext_prop_desc = NULL;
++
+ 	free(op);
+ }
+ 
+@@ -2293,9 +2299,15 @@ static void bt_gatt_client_free(struct b
+ 	queue_destroy(client->notify_chrcs, notify_chrc_free);
+ 	queue_destroy(client->notify_list, notify_data_cleanup);
+ 
++        client->notify_chrcs = NULL;
++        client->notify_list = NULL;
++
+ 	queue_destroy(client->ready_cbs, ready_destroy);
+ 	queue_destroy(client->idle_cbs, idle_destroy);
+ 
++        client->ready_cbs = NULL;
++        client->idle_cbs = NULL;
++
+ 	if (client->debug_destroy)
+ 		client->debug_destroy(client->debug_data);
+ 
+@@ -2314,6 +2326,11 @@ static void bt_gatt_client_free(struct b
+ 	queue_destroy(client->long_write_queue, request_unref);
+ 	queue_destroy(client->pending_requests, request_unref);
+ 
++        client->clones = NULL;
++        client->svc_chngd_queue = NULL;
++        client->long_write_queue = NULL;
++        client->pending_requests = NULL;
++
+ 	if (client->parent) {
+ 		queue_remove(client->parent->clones, client);
+ 		bt_gatt_client_unref(client->parent);

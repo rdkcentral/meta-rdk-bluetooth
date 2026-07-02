@@ -1,0 +1,183 @@
+Date: Aug 3, 2023
+From: mselva006c <mani_selvaraj@comcast.com>
+Source: COMCAST
+Subject: bluz5 5.48 build fails in kirkstone
+Signed-off-by: mselva006c <mani_selvaraj@comcast.com>
+Index: bluez-5.48/obexd/client/sync.c
+===================================================================
+--- bluez-5.48.orig/obexd/client/sync.c
++++ bluez-5.48/obexd/client/sync.c
+@@ -58,7 +58,7 @@ static DBusConnection *conn = NULL;
+ static DBusMessage *sync_setlocation(DBusConnection *connection,
+ 			DBusMessage *message, void *user_data)
+ {
+-	struct sync_data *sync = user_data;
++	struct sync_data *sync_ = user_data;
+ 	const char *location;
+ 	char *path = NULL, *tmp;
+ 
+@@ -79,8 +79,8 @@ static DBusMessage *sync_setlocation(DBu
+ 		return g_dbus_create_error(message,
+ 			ERROR_INF ".InvalidArguments", "InvalidPhonebook");
+ 
+-	g_free(sync->phonebook_path);
+-	sync->phonebook_path = path;
++	g_free(sync_->phonebook_path);
++	sync_->phonebook_path = path;
+ 
+ 	return dbus_message_new_method_return(message);
+ }
+@@ -88,7 +88,7 @@ static DBusMessage *sync_setlocation(DBu
+ static DBusMessage *sync_getphonebook(DBusConnection *connection,
+ 			DBusMessage *message, void *user_data)
+ {
+-	struct sync_data *sync = user_data;
++	struct sync_data *sync_ = user_data;
+ 	struct obc_transfer *transfer;
+ 	const char *target_file;
+ 	GError *err = NULL;
+@@ -101,20 +101,20 @@ static DBusMessage *sync_getphonebook(DB
+ 				ERROR_INF ".InvalidArguments",
+ 				"Invalid arguments in method call");
+ 
+-	if (sync->msg)
++	if (sync_->msg)
+ 		return g_dbus_create_error(message,
+ 			ERROR_INF ".InProgress", "Transfer in progress");
+ 
+ 	/* set default phonebook_path to memory internal phonebook */
+-	if (!sync->phonebook_path)
+-		sync->phonebook_path = g_strdup("telecom/pb.vcf");
++	if (!sync_->phonebook_path)
++		sync_->phonebook_path = g_strdup("telecom/pb.vcf");
+ 
+-	transfer = obc_transfer_get("phonebook", sync->phonebook_path,
++	transfer = obc_transfer_get("phonebook", sync_->phonebook_path,
+ 							target_file, &err);
+ 	if (transfer == NULL)
+ 		goto fail;
+ 
+-	if (!obc_session_queue(sync->session, transfer, NULL, NULL, &err))
++	if (!obc_session_queue(sync_->session, transfer, NULL, NULL, &err))
+ 		goto fail;
+ 
+ 	return obc_transfer_create_dbus_reply(transfer, message);
+@@ -129,7 +129,7 @@ fail:
+ static DBusMessage *sync_putphonebook(DBusConnection *connection,
+ 			DBusMessage *message, void *user_data)
+ {
+-	struct sync_data *sync = user_data;
++	struct sync_data *sync_ = user_data;
+ 	struct obc_transfer *transfer;
+ 	const char *source_file;
+ 	GError *err = NULL;
+@@ -143,15 +143,15 @@ static DBusMessage *sync_putphonebook(DB
+ 				"Invalid arguments in method call");
+ 
+ 	/* set default phonebook_path to memory internal phonebook */
+-	if (!sync->phonebook_path)
+-		sync->phonebook_path = g_strdup("telecom/pb.vcf");
++	if (!sync_->phonebook_path)
++		sync_->phonebook_path = g_strdup("telecom/pb.vcf");
+ 
+-	transfer = obc_transfer_put(NULL, sync->phonebook_path, source_file,
++	transfer = obc_transfer_put(NULL, sync_->phonebook_path, source_file,
+ 							NULL, 0, &err);
+ 	if (transfer == NULL)
+ 		goto fail;
+ 
+-	if (!obc_session_queue(sync->session, transfer, NULL, NULL, &err))
++	if (!obc_session_queue(sync_->session, transfer, NULL, NULL, &err))
+ 		goto fail;
+ 
+ 	return obc_transfer_create_dbus_reply(transfer, message);
+@@ -182,31 +182,31 @@ static const GDBusMethodTable sync_metho
+ 
+ static void sync_free(void *data)
+ {
+-	struct sync_data *sync = data;
++	struct sync_data *sync_ = data;
+ 
+-	obc_session_unref(sync->session);
+-	g_free(sync->phonebook_path);
+-	g_free(sync);
++	obc_session_unref(sync_->session);
++	g_free(sync_->phonebook_path);
++	g_free(sync_);
+ }
+ 
+ static int sync_probe(struct obc_session *session)
+ {
+-	struct sync_data *sync;
++	struct sync_data *sync_;
+ 	const char *path;
+ 
+ 	path = obc_session_get_path(session);
+ 
+ 	DBG("%s", path);
+ 
+-	sync = g_try_new0(struct sync_data, 1);
+-	if (!sync)
++	sync_ = g_try_new0(struct sync_data, 1);
++	if (!sync_)
+ 		return -ENOMEM;
+ 
+-	sync->session = obc_session_ref(session);
++	sync_->session = obc_session_ref(session);
+ 
+ 	if (!g_dbus_register_interface(conn, path, SYNC_INTERFACE, sync_methods,
+-						NULL, NULL, sync, sync_free)) {
+-		sync_free(sync);
++						NULL, NULL, sync_, sync_free)) {
++		sync_free(sync_);
+ 		return -ENOMEM;
+ 	}
+ 
+@@ -222,7 +222,7 @@ static void sync_remove(struct obc_sessi
+ 	g_dbus_unregister_interface(conn, path, SYNC_INTERFACE);
+ }
+ 
+-static struct obc_driver sync = {
++static struct obc_driver sync_ = {
+ 	.service = "SYNC",
+ 	.uuid = SYNC_UUID,
+ 	.target = OBEX_SYNC_UUID,
+@@ -241,7 +241,7 @@ int sync_init(void)
+ 	if (!conn)
+ 		return -EIO;
+ 
+-	err = obc_driver_register(&sync);
++	err = obc_driver_register(&sync_);
+ 	if (err < 0) {
+ 		dbus_connection_unref(conn);
+ 		conn = NULL;
+@@ -258,5 +258,5 @@ void sync_exit(void)
+ 	dbus_connection_unref(conn);
+ 	conn = NULL;
+ 
+-	obc_driver_unregister(&sync);
++	obc_driver_unregister(&sync_);
+ }
+Index: bluez-5.48/profiles/audio/media.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/media.c
++++ bluez-5.48/profiles/audio/media.c
+@@ -1238,7 +1238,7 @@ static bool stop(void *user_data)
+ 	return media_player_send(mp, "Stop");
+ }
+ 
+-static bool pause(void *user_data)
++static bool pause_play(void *user_data)
+ {
+ 	struct media_player *mp = user_data;
+ 
+@@ -1288,7 +1288,7 @@ static struct avrcp_player_cb player_cb
+ 	.set_volume = set_volume,
+ 	.play = play,
+ 	.stop = stop,
+-	.pause = pause,
++	.pause = pause_play,
+ 	.next = next,
+ 	.previous = previous,
+ };
+

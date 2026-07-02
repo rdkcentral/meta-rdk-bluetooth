@@ -1,0 +1,64 @@
+###################################################################################################
+Date: Mon, 17 Feb 2024 20:00:00
+
+Subject: Auto connect flags were not updated properly post DEEPSLEEP.
+
+Post waking up from DEEPSLEEP blewakeup enabler added the LE gamepads to
+kernel autoconnect list, so updated the autoconnect flags on incoming connection.
+
+Source: Bluez open source
+Upstream-Status: Pending
+Signed-off-by: Natraj Muthusamy <Natraj_Muthusamy@comcast.com>
+###################################################################################################
+
+Index: bluez-5.80/src/device.c
+===================================================================
+--- bluez-5.80.orig/src/device.c
++++ bluez-5.80/src/device.c
+@@ -2145,6 +2145,15 @@ static void device_set_auto_connect(stru
+ 	adapter_connect_list_add(device->adapter, device);
+ }
+ 
++void device_enable_auto_connect_hid_devices(struct btd_device *device, gboolean enable)
++{
++    if (device->appearance == HID_LE_GAMEPAD_APPEARANCE &&
++                    !device->auto_connect &&
++                    device->disable_auto_connect) {
++        device_set_auto_connect(device,enable);
++    }
++}
++
+ static DBusMessage *dev_disconnect(DBusConnection *conn, DBusMessage *msg,
+ 							void *user_data)
+ {
+Index: bluez-5.80/src/device.h
+===================================================================
+--- bluez-5.80.orig/src/device.h
++++ bluez-5.80/src/device.h
+@@ -157,6 +157,7 @@ void device_set_wake_override(struct btd
+ void device_set_wake_allowed(struct btd_device *device, bool wake_allowed,
+ 			     guint32 id);
+ void device_set_refresh_discovery(struct btd_device *dev, bool refresh);
++void device_enable_auto_connect_hid_devices(struct btd_device *device, gboolean enable);
+ 
+ typedef void (*disconnect_watch) (struct btd_device *device, gboolean removal,
+ 					void *user_data);
+Index: bluez-5.80/src/gatt-database.c
+===================================================================
+--- bluez-5.80.orig/src/gatt-database.c
++++ bluez-5.80/src/gatt-database.c
+@@ -678,6 +678,14 @@ static void connect_cb(GIOChannel *io, G
+ 	if (!device)
+ 		return;
+ 
++    /* Re-enabling auto-connect for LE HID devices to update the
++     * auto-connect flags in the device structure if not updated
++     * This is necessary if the device was added to the kernel's
++     * auto-connect list upon waking from DEEPSLEEP through the
++     * blewakeup enabler.
++     */
++    device_enable_auto_connect_hid_devices(device, TRUE);
++
+ 	device_attach_att(device, io);
+ }
+ 

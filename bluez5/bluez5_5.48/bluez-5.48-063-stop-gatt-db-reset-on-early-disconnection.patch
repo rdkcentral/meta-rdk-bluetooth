@@ -1,0 +1,69 @@
+#########################################################################
+Date: Apr 2, 2025 16:19 PM
+
+Subject: Stop BlueZ from resetting the gatt database when the device disconnects
+early in the connection process. This can cause issues when reconnecting the device
+as the profiles are likely to be loaded but the attributes they depend upon have
+been removed
+
+Source: Sky
+Upstream-Status: Pending
+Signed-off-by: Jack O'Gorman <jack.ogorman@sky.uk>
+#########################################################################
+
+diff --git a/src/shared/gatt-client.c b/src/shared/gatt-client.c
+index 410944924..c41fc687d 100644
+--- a/src/shared/gatt-client.c
++++ b/src/shared/gatt-client.c
+@@ -363,25 +363,37 @@ static void discovery_op_complete(struct discovery_op *op, bool success,
+ 	 */
+ 	gatt_db_unregister(op->client->db, op->db_id);
+ 	op->db_id = 0;
++	/* 
++	 * If the discovery operation fails but with no att error, it is likely due to the device disconnecting during connection
++	 * It is important in this case that the gatt db is preserved as profiles may still be loaded in the next connection
++	 */
++	if(!(!success && !err))
++	{
++		/* Remove services pending */
++		for (svc = queue_get_entries(op->pending_svcs); svc; svc = svc->next) {
++			struct gatt_db_attribute *attr = svc->data;
++			uint16_t start, end;
+ 
+-	/* Remove services pending */
+-	for (svc = queue_get_entries(op->pending_svcs); svc; svc = svc->next) {
+-		struct gatt_db_attribute *attr = svc->data;
+-		uint16_t start, end;
++			gatt_db_attribute_get_service_data(attr, &start, &end,
++								NULL, NULL);
+ 
+-		gatt_db_attribute_get_service_data(attr, &start, &end,
+-							NULL, NULL);
++			util_debug(op->client->debug_callback, op->client->debug_data,
++					"service disappeared: start 0x%04x end 0x%04x",
++					start, end);
+ 
+-		util_debug(op->client->debug_callback, op->client->debug_data,
+-				"service disappeared: start 0x%04x end 0x%04x",
+-				start, end);
++			gatt_db_remove_service(op->client->db, attr);
++		}
+ 
+-		gatt_db_remove_service(op->client->db, attr);
++		/* Reset remaining range */
++		if (op->last != UINT16_MAX)
++			gatt_db_clear_range(op->client->db, op->last + 1, UINT16_MAX);
++		
++	}
++	else
++	{
++		util_debug(op->client->debug_callback, op->client->debug_data, 
++				"not resetting services when device disconnected unexpectedly");
+ 	}
+-
+-	/* Reset remaining range */
+-	if (op->last != UINT16_MAX)
+-		gatt_db_clear_range(op->client->db, op->last + 1, UINT16_MAX);
+ 
+ 	op->success = success;
+ 	op->complete_func(op, success, err);

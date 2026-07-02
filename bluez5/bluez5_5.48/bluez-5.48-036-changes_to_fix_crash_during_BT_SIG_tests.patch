@@ -1,0 +1,44 @@
+#####################################################################
+Date: Tue 26 Jul 17:47:29 BST 2022
+From: Tijo Thomas John <tijo.thomas@sky.uk>
+Subject: Bluez patch to fix crash during BT SIG testing
+Source: SKY
+Signed-off-by: Tijo Thomas John <tijo.thomas@sky.uk>
+#####################################################################
+diff --git a/profiles/audio/avdtp.c b/profiles/audio/avdtp.c
+index 51ead684a..620a76c90 100644
+--- a/profiles/audio/avdtp.c
++++ b/profiles/audio/avdtp.c
+@@ -3484,6 +3484,7 @@ int avdtp_abort(struct avdtp *session, struct avdtp_stream *stream)
+ {
+ 	struct seid_req req;
+ 	int ret;
++	struct avdtp_local_sep *sep = stream->lsep;
+ 
+ 	if (!stream && session->discover) {
+ 		/* Don't call cb since it being aborted */
+@@ -3498,6 +3499,8 @@ int avdtp_abort(struct avdtp *session, struct avdtp_stream *stream)
+ 	if (stream->lsep->state == AVDTP_STATE_ABORTING)
+ 		return -EINVAL;
+ 
++	avdtp_sep_set_state(session, sep, AVDTP_STATE_ABORTING);
++
+ 	if (session->req && stream == session->req->stream)
+ 		return cancel_request(session, ECANCELED);
+ 
+diff --git a/profiles/audio/sink.c b/profiles/audio/sink.c
+index 7cac21034..726e2f562 100644
+--- a/profiles/audio/sink.c
++++ b/profiles/audio/sink.c
+@@ -309,8 +309,10 @@ static void sink_free(struct btd_service *service)
+ 		avdtp_stream_remove_cb(sink->session, sink->stream,
+ 					sink->cb_id);
+ 
+-	if (sink->session)
++	if (sink->session) {
+ 		avdtp_unref(sink->session);
++		sink->session = NULL;
++	}
+ 
+ 	if (sink->connect_id > 0) {
+ 		btd_service_connecting_complete(sink->service, -ECANCELED);
