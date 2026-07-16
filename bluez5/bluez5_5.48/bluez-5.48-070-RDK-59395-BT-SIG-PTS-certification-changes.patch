@@ -1,0 +1,263 @@
+#####################################################################
+Date: Tue, 22 Sep 2025 00:00:00 +0000
+From: Theo Anderson <theo.anderson@sky.uk>
+Subject: [PATCH] BlueZ changes needed for BT SIG PTS certification.
+
+This patch contains the mandatory BlueZ modifications required for
+ES1-BCM BT SIG PTS certification.
+
+Changes have been backported from upstream. Notably, this
+patch adds support for DIS (Device Information Service).
+
+Note that this patch only contains changes that will be active on a
+live device. Other changes, such as the enablement of certain tools
+used during PTS testing, should be added via a separate, optional
+patch.
+
+Source: Sky
+License:
+Upstream-Status: Pending
+Signed-off-by: Theo Anderson <theo.anderson@sky.uk>
+#####################################################################
+diff --git bluez-5.48/profiles/audio/avdtp.c bluez-5.48/profiles/audio/avdtp.c
+index 4bdd57a..b306189 100644
+--- bluez-5.48/profiles/audio/avdtp.c
++++ bluez-5.48/profiles/audio/avdtp.c
+@@ -1282,7 +1282,8 @@ struct avdtp_remote_sep *avdtp_find_remote_sep(struct avdtp *session,
+ 
+ static GSList *caps_to_list(uint8_t *data, size_t size,
+ 				struct avdtp_service_capability **codec,
+-				gboolean *delay_reporting)
++				gboolean *delay_reporting,
++				uint8_t *err)
+ {
+ 	struct avdtp_service_capability *cap;
+ 	GSList *caps;
+@@ -1298,8 +1299,21 @@ static GSList *caps_to_list(uint8_t *data, size_t size,
+ 
+ 		cap = (struct avdtp_service_capability *)data;
+ 
++		/* Verify that the Media Transport capability's length = 0.
++		 * Reject otherwise
++		 */
++		if (cap->category == AVDTP_MEDIA_TRANSPORT &&
++					cap->length != 0) {
++			error("Invalid media transport in getcap resp");
++			if (err)
++				*err = AVDTP_BAD_MEDIA_TRANSPORT_FORMAT;
++			break;
++		}
++
+ 		if (sizeof(*cap) + cap->length > size) {
+ 			error("Invalid capability data in getcap resp");
++			if (err)
++				*err = AVDTP_INVALID_CAPABILITIES;
+ 			break;
+ 		}
+ 
+@@ -1468,9 +1482,8 @@ static gboolean avdtp_setconf_cmd(struct avdtp *session, uint8_t transaction,
+ 	struct conf_rej rej;
+ 	struct avdtp_local_sep *sep;
+ 	struct avdtp_stream *stream;
+-	uint8_t err, category = 0x00;
++	uint8_t err = 0, category = 0x00;
+ 	struct btd_service *service;
+-	GSList *l;
+ 
+ 	if (size < sizeof(struct setconf_req)) {
+ 		error("Too short getcap request");
+@@ -1526,7 +1539,11 @@ static gboolean avdtp_setconf_cmd(struct avdtp *session, uint8_t transaction,
+ 	stream->caps = caps_to_list(req->caps,
+ 					size - sizeof(struct setconf_req),
+ 					&stream->codec,
+-					&stream->delay_reporting);
++					&stream->delay_reporting,
++					&err);
++
++	if (err)
++		goto failed_stream;
+ 
+ 	if (!stream->caps || !stream->codec) {
+ 		err = AVDTP_UNSUPPORTED_CONFIGURATION;
+@@ -1534,17 +1551,6 @@ static gboolean avdtp_setconf_cmd(struct avdtp *session, uint8_t transaction,
+ 		goto failed_stream;
+ 	}
+ 
+-
+-	/* Verify that the Media Transport capability's length = 0. Reject otherwise */
+-	for (l = stream->caps; l != NULL; l = g_slist_next(l)) {
+-		struct avdtp_service_capability *cap = l->data;
+-
+-		if (cap->category == AVDTP_MEDIA_TRANSPORT && cap->length != 0) {
+-			err = AVDTP_BAD_MEDIA_TRANSPORT_FORMAT;
+-			goto failed_stream;
+-		}
+-	}
+-
+ 	if (stream->delay_reporting && session->version < 0x0103)
+ 		session->version = 0x0103;
+ 
+@@ -2776,7 +2782,7 @@ static gboolean avdtp_get_capabilities_resp(struct avdtp *session,
+ 	}
+ 
+ 	sep->caps = caps_to_list(resp->caps, size - sizeof(struct getcap_resp),
+-					&sep->codec, &sep->delay_reporting);
++					&sep->codec, &sep->delay_reporting, NULL);
+ 
+ 	return TRUE;
+ }
+diff --git bluez-5.48/profiles/audio/avrcp.c bluez-5.48/profiles/audio/avrcp.c
+index d9d1eae..e8cc835 100644
+--- bluez-5.48/profiles/audio/avrcp.c
++++ bluez-5.48/profiles/audio/avrcp.c
+@@ -139,7 +139,7 @@
+ #define AVRCP_CHARSET_UTF8		106
+ 
+ #define AVRCP_BROWSING_TIMEOUT		1
+-#define AVRCP_CT_VERSION		0x0106
++#define AVRCP_CT_VERSION		0x0105
+ #define AVRCP_TG_VERSION		0x0105
+ 
+ #define AVRCP_SCOPE_MEDIA_PLAYER_LIST			0x00
+@@ -318,7 +318,7 @@ static sdp_record_t *avrcp_ct_record(void)
+ 	sdp_record_t *record;
+ 	sdp_data_t *psm[2], *version, *features;
+ 	uint16_t lp = AVCTP_CONTROL_PSM, ap = AVCTP_BROWSING_PSM;
+-	uint16_t avctp_ver = 0x0103;
++	uint16_t avctp_ver = 0x0104;
+ 	uint16_t feat = ( AVRCP_FEATURE_CATEGORY_1 |
+ 						AVRCP_FEATURE_CATEGORY_2 |
+ 						AVRCP_FEATURE_CATEGORY_3 |
+diff --git bluez-5.48/src/gatt-database.c bluez-5.48/src/gatt-database.c
+index fbd48b7..6769fee 100644
+--- bluez-5.48/src/gatt-database.c
++++ bluez-5.48/src/gatt-database.c
+@@ -63,11 +63,14 @@
+ 
+ #define UUID_GAP	0x1800
+ #define UUID_GATT	0x1801
++#define UUID_DIS	0x180a
+ 
+ #ifndef MIN
+ #define MIN(a, b) ((a) < (b) ? (a) : (b))
+ #endif
+ 
++#include "hcid.h"
++
+ struct gatt_record {
+ 	struct btd_gatt_database *database;
+ 	uint32_t handle;
+@@ -185,6 +188,7 @@ struct device_info {
+ 	uint8_t bdaddr_type;
+ };
+ 
++
+ static void ccc_cb_free(void *data)
+ {
+ 	struct ccc_cb_data *ccc_cb = data;
+@@ -953,10 +957,51 @@ static void populate_gatt_service(struct btd_gatt_database *database)
+ 	gatt_db_service_set_active(service, true);
+ }
+ 
++static void device_info_read_pnp_id_cb(struct gatt_db_attribute *attrib,
++					unsigned int id, uint16_t offset,
++					uint8_t opcode, struct bt_att *att,
++					void *user_data)
++{
++	uint8_t pdu[7];
++
++	pdu[0] = main_opts.did_source;
++	put_le16(main_opts.did_vendor, &pdu[1]);
++	put_le16(main_opts.did_product, &pdu[3]);
++	put_le16(main_opts.did_version, &pdu[5]);
++
++	gatt_db_attribute_read_result(attrib, id, 0, pdu, sizeof(pdu));
++}
++
++static void populate_devinfo_service(struct btd_gatt_database *database)
++{
++	struct gatt_db_attribute *service;
++	struct gatt_db_attribute *attrib;
++	bt_uuid_t uuid;
++
++	if (!main_opts.did_source)
++		return;
++
++	bt_uuid16_create(&uuid, UUID_DIS);
++	service = gatt_db_add_service(database->db, &uuid, true, 3);
++
++	bt_uuid16_create(&uuid, GATT_CHARAC_PNP_ID);
++	attrib = gatt_db_service_add_characteristic(service, &uuid,
++						BT_ATT_PERM_READ,
++						BT_GATT_CHRC_PROP_READ,
++						device_info_read_pnp_id_cb,
++						NULL, database);
++	gatt_db_attribute_set_fixed_length(attrib, 7);
++
++	gatt_db_service_set_active(service, true);
++
++	database_add_record(database, service);
++}
++
+ static void register_core_services(struct btd_gatt_database *database)
+ {
+ 	populate_gap_service(database);
+ 	populate_gatt_service(database);
++	populate_devinfo_service(database);
+ }
+ 
+ struct notify {
+diff --git bluez-5.48/src/shared/gatt-db.c bluez-5.48/src/shared/gatt-db.c
+index 69f2de7..d055eff 100644
+--- bluez-5.48/src/shared/gatt-db.c
++++ bluez-5.48/src/shared/gatt-db.c
+@@ -1728,6 +1728,38 @@ static bool read_timeout(void *user_data)
+ 	return false;
+ }
+ 
++bool gatt_db_attribute_set_fixed_length(struct gatt_db_attribute *attrib,
++						uint16_t len)
++{
++	struct gatt_db_service *service;
++
++	if (!attrib)
++		return false;
++
++	service = attrib->service;
++
++	/* Don't allow overwriting length of service attribute */
++	if (attrib->service->attributes[0] == attrib)
++		return false;
++
++	/* If attribute is a characteristic declaration adjust to its value */
++	if (!bt_uuid_cmp(&characteristic_uuid, &attrib->uuid)) {
++		int i;
++
++		/* Start from the attribute following the value handle */
++		for (i = 0; i < service->num_handles; i++) {
++			if (service->attributes[i] == attrib) {
++				attrib = service->attributes[i + 1];
++				break;
++			}
++		}
++	}
++
++	attrib->value_len = len;
++
++	return true;
++}
++
+ bool gatt_db_attribute_read(struct gatt_db_attribute *attrib, uint16_t offset,
+ 				uint8_t opcode, struct bt_att *att,
+ 				gatt_db_attribute_read_t func, void *user_data)
+diff --git bluez-5.48/src/shared/gatt-db.h bluez-5.48/src/shared/gatt-db.h
+index e2ac645..985d77b 100644
+--- bluez-5.48/src/shared/gatt-db.h
++++ bluez-5.48/src/shared/gatt-db.h
+@@ -267,3 +267,5 @@ bool gatt_db_attribute_write_result(struct gatt_db_attribute *attrib,
+ bool gatt_db_attribute_reset(struct gatt_db_attribute *attrib);
+ 
+ void *gatt_db_attribute_get_user_data(struct gatt_db_attribute *attrib);
++
++bool gatt_db_attribute_set_fixed_length(struct gatt_db_attribute *attrib, uint16_t len);
+\ No newline at end of file
