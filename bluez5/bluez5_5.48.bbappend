@@ -68,6 +68,7 @@ SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://CVE-2021-3658_5.48_fix.patch \
     file://bluez-5.48-070-RDK-59395-BT-SIG-PTS-certification-changes.patch \
     file://bluez-5.48-073-RDKOSS-1008-endpoint-crash.patch \
+    file://bluez-5.48-074-LLAMA-18285-increase-gatt-notify-pipe-buffer.patch \
     "
 
 # Removed testtools package as it has a depedncy with python
