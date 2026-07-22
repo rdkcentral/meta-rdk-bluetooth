@@ -12,7 +12,7 @@ Signed-off-by: Damiano Barone <damiano.barone@sky.uk>
 
 --- bluez-5.48.orig/src/gatt-client.c
 +++ bluez-5.48/src/gatt-client.c
-@@ -1136,6 +1136,11 @@
+@@ -1136,6 +1136,12 @@
  
  	if (pipe2(pipefd, O_DIRECT | O_NONBLOCK | O_CLOEXEC) < 0)
  		return btd_error_failed(msg, strerror(errno));
@@ -20,7 +20,8 @@ Signed-off-by: Damiano Barone <damiano.barone@sky.uk>
 +	 * to 512 KB so that brief ctrlm event-loop stalls (caused by D-Bus
 +	 * congestion during LE scan storms) do not fill the pipe and produce
 +	 * io_send: EAGAIN audio frame drops on the voice remote stream. */
-+	fcntl(pipefd[1], F_SETPIPE_SZ, 512 * 1024);
++	if (fcntl(pipefd[1], F_SETPIPE_SZ, 512 * 1024) < 0)
++		DBG("Failed to increase GATT notify pipe buffer: %s", strerror(errno));
  
  	dir = dbus_message_has_member(msg, "AcquireWrite");
  
