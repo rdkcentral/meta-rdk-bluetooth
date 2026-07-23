@@ -1,0 +1,27 @@
+#########################################################################
+Date: July 23, 2026 16:19 PM
+
+Subject: the 64 KB buffer fills in ~7.9 s of zero-read, and the observed D-Bus storm lasts ~29 s, causing
+io_send: EAGAIN drops that appear as audio distortion. Raise the pipe buffer to 512 KB with F_SETPIPE_SZ, giving a 62-s fill time at
+the 8.1 KB/s ADPCM data rate and comfortably absorbing the worst-case scan storm.
+
+Source: Sky
+Upstream-Status: Pending
+Signed-off-by: Damiano Barone <damiano.barone@sky.uk>
+#########################################################################
+
+--- bluez-5.48.orig/src/gatt-client.c
++++ bluez-5.48/src/gatt-client.c
+@@ -1136,6 +1136,12 @@
+ 
+ 	if (pipe2(pipefd, O_DIRECT | O_NONBLOCK | O_CLOEXEC) < 0)
+ 		return btd_error_failed(msg, strerror(errno));
++	/* LLAMA-18285: increase notify pipe buffer from the 64 KB kernel default
++	 * to 512 KB so that brief ctrlm event-loop stalls (caused by D-Bus
++	 * congestion during LE scan storms) do not fill the pipe and produce
++	 * io_send: EAGAIN audio frame drops on the voice remote stream. */
++	if (fcntl(pipefd[1], F_SETPIPE_SZ, 512 * 1024) < 0)
++		DBG("Failed to increase GATT notify pipe buffer: %s", strerror(errno));
+ 
+ 	dir = dbus_message_has_member(msg, "AcquireWrite");
+ 

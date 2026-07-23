@@ -1,0 +1,47 @@
+##################################################################
+Date: Jun 29, 2026 18:56
+From:
+Subject: [PATCH] bluez endpoint crash fix
+Source: Sky
+License:
+Upstream-Status:
+Signed-off-by: ppalan289 <preethi_palanisamy@comcast.com>
+###################################################################
+Index: bluez-5.48/profiles/audio/a2dp.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/a2dp.c
++++ bluez-5.48/profiles/audio/a2dp.c
+@@ -1729,6 +1729,8 @@ static void a2dp_unregister_sep(struct a
+ 	if (sep->destroy) {
+ 		sep->destroy(sep->user_data);
+ 		sep->endpoint = NULL;
++                sep->user_data = NULL;
++		DBG("userDataAndEndpoints made NULL");
+ 	}
+ 
+ 	avdtp_unregister_sep(server->seps, sep->lsep);
+Index: bluez-5.48/profiles/audio/media.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/media.c
++++ bluez-5.48/profiles/audio/media.c
+@@ -202,7 +202,7 @@ static void media_endpoint_remove(struct
+ 		return;
+ 	}
+ 
+-	info("Endpoint unregistered: sender=%s path=%s", endpoint->sender,
++	DBG("Endpoint unregistered:- sender=%s path=%s", endpoint->sender,
+ 			endpoint->path);
+ 
+ 	adapter->endpoints = g_slist_remove(adapter->endpoints, endpoint);
+@@ -248,6 +248,11 @@ done:
+ 
+ static void clear_endpoint(struct media_endpoint *endpoint)
+ {
++        if(endpoint == NULL) {
++            DBG("endpoint is NULL");
++            return;
++        }
++
+ 	media_endpoint_cancel_all(endpoint);
+ 
+ 	while (endpoint->transports != NULL)
