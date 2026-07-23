@@ -1,8 +1,8 @@
 #########################################################################
 Date: Apr 2, 2025 16:19 PM
 
-Subject: the 64 KB bufferfills in ~7.9 s of zero-read, and the observed D-Bus storm lasts ~29 s, causing
-io_send: EAGAIN drops that appear as audio distortion.aise the pipe buffer to 512 KB with F_SETPIPE_SZ, giving a 62-s fill time at
+Subject: the 64 KB buffer fills in ~7.9 s of zero-read, and the observed D-Bus storm lasts ~29 s, causing
+io_send: EAGAIN drops that appear as audio distortion. Raise the pipe buffer to 512 KB with F_SETPIPE_SZ, giving a 62-s fill time at
 the 8.1 KB/s ADPCM data rate and comfortably absorbing the worst-case scan storm.
 
 Source: Sky
