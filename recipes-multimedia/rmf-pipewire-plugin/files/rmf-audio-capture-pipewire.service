@@ -1,0 +1,16 @@
+[Unit]
+Description=RMF Audio Capture PipeWire Source
+After=pipewire.service wireplumber.service
+Requires=pipewire.service
+PartOf=pipewire.service
+
+[Service]
+Type=simple
+Environment=PIPEWIRE_RUNTIME_DIR=/tmp/pipewire
+Environment=RMFAUDIOCAP_DELAY_COMPENSATION_OVERRIDE=610
+ExecStart=/usr/bin/rmf-audio-capture-source
+Restart=on-failure
+RestartSec=5
+
+[Install]
+# Started explicitly by another service
