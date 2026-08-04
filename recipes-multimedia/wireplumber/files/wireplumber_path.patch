@@ -1,0 +1,13 @@
+diff --git a/lib/wp/state.c b/lib/wp/state.c
+index f877e3b0..b00d79e2 100644
+--- a/lib/wp/state.c
++++ b/lib/wp/state.c
+@@ -147,7 +147,7 @@ wp_get_xdg_state_dir (void)
+     g_autofree gchar *path = NULL;
+     g_autofree gchar *base = g_strdup (g_getenv ("XDG_STATE_HOME"));
+     if (!base)
+-      base = g_build_filename (g_get_home_dir (), ".local", "state", NULL);
++      base = g_build_filename (g_get_home_dir (), "/tmp", "state", NULL);
+ 
+     path = g_build_filename (base, "wireplumber", NULL);
+     (void) g_strlcpy (xdg_dir, path, sizeof (xdg_dir));

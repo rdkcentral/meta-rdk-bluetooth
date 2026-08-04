@@ -1,0 +1,111 @@
+diff --git a/spa/plugins/bluez5/bluez5-dbus.c b/spa/plugins/bluez5/bluez5-dbus.c
+index f36c44e28..d254cf80c 100644
+--- a/spa/plugins/bluez5/bluez5-dbus.c
++++ b/spa/plugins/bluez5/bluez5-dbus.c
+@@ -4567,10 +4567,46 @@ static int adapter_register_endpoints_legacy(struct spa_bt_adapter *a)
+ 	int i;
+ 	int err = 0;
+ 	bool registered = false;
++	bool use_aac = false;
++	bool use_two_sbc_endpoints = false;
++	bool use_sbcs_and_aac = false;
++	FILE * aac_fp = NULL;
++	FILE * two_sbc_endpoints_fp = NULL;
++	FILE * sbc_and_aac_fp = NULL;
++	//allow configuration of endpoints from /data/ in order to register multiple endpoints
++	aac_fp = fopen("/data/use_aac.txt", "r");
++	if (aac_fp)
++	{
++		
++		use_aac = true;
++		fclose(aac_fp);
++	}
++	else 
++	{
++		two_sbc_endpoints_fp = fopen("/data/use_two_sbc_endpoints.txt", "r");
++		if (two_sbc_endpoints_fp)
++		{
++			
++			use_two_sbc_endpoints = true;
++			fclose(two_sbc_endpoints_fp);
++		}
++		else 
++		{
++			sbc_and_aac_fp = fopen("/data/use_sbcs_and_aac.txt", "r");
++			if (sbc_and_aac_fp)
++			{
++			
++				use_sbcs_and_aac = true;
++				fclose(sbc_and_aac_fp);
++			}
++		}
++	}
++	
+ 
+ 	if (a->legacy_endpoints_registered)
+ 	    return err;
+ 
++	
+ 	/* The legacy bluez5 api doesn't support codec switching
+ 	 * It doesn't make sense to register codecs other than SBC
+ 	 * as bluez5 will probably use SBC anyway and we have no control over it
+@@ -4578,15 +4614,28 @@ static int adapter_register_endpoints_legacy(struct spa_bt_adapter *a)
+ 	 * if they want proper media codec support
+ 	 * */
+ 	spa_log_warn(monitor->log,
+-		     "Using legacy bluez5 API for A2DP - only SBC will be supported. "
+-		     "Please upgrade bluez5.");
++		     "Using legacy bluez5 API for A2DP - only %s will be supported. "
++		     "Please upgrade bluez5.", (use_aac == true) ? ((use_two_sbc_endpoints == true) ?  "2 x SBC endpoints" : (use_sbcs_and_aac == true ? "SBC, (XQ), and AAC" :"SBC") ) : "AAC");
+ 
+ 	for (i = 0; media_codecs[i]; i++) {
+ 		const struct media_codec *codec = media_codecs[i];
+ 
+-		if (codec->id != SPA_BLUETOOTH_AUDIO_CODEC_SBC)
++		if (use_aac == true)
++		{
++			if (codec->id != SPA_BLUETOOTH_AUDIO_CODEC_AAC)
++				continue;
++		}
++		else if (use_sbcs_and_aac == true)
++		{
++			if (codec->id != SPA_BLUETOOTH_AUDIO_CODEC_AAC && codec->id != SPA_BLUETOOTH_AUDIO_CODEC_SBC && codec->id != SPA_BLUETOOTH_AUDIO_CODEC_SBC_XQ)
++			{
++				continue;
++			}
++		}
++		else if (codec->id != SPA_BLUETOOTH_AUDIO_CODEC_SBC)
++		{
+ 			continue;
+-
++		}
+ 		if (endpoint_should_be_registered(monitor, codec, SPA_BT_MEDIA_SOURCE)) {
+ 			if ((err = bluez_register_endpoint_legacy(a, SPA_BT_MEDIA_SOURCE,
+ 									SPA_BT_UUID_A2DP_SOURCE,
+@@ -4600,9 +4649,25 @@ static int adapter_register_endpoints_legacy(struct spa_bt_adapter *a)
+ 									codec)))
+ 				goto out;
+ 		}
++		if (use_two_sbc_endpoints == true)
++		{
++			if (endpoint_should_be_registered(monitor, codec, SPA_BT_MEDIA_SOURCE)) {
++				if ((err = bluez_register_endpoint_legacy(a, SPA_BT_MEDIA_SOURCE,
++										SPA_BT_UUID_A2DP_SOURCE,
++										codec)))
++					goto out;
++			}
++
++			if (endpoint_should_be_registered(monitor, codec, SPA_BT_MEDIA_SINK)) {
++				if ((err = bluez_register_endpoint_legacy(a, SPA_BT_MEDIA_SINK,
++										SPA_BT_UUID_A2DP_SINK,
++										codec)))
++					goto out;
++			}
++		}
+ 
+ 		registered = true;
+-		break;
++		//break;
+ 	}
+ 
+ 	if (!registered) {
