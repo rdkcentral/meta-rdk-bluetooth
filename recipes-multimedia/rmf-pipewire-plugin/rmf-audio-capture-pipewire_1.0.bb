@@ -36,7 +36,7 @@ do_install:append() {
 
     # Inject delay compensation if vendor distro feature is set
     if ${@bb.utils.contains('DISTRO_FEATURES', 'bt-audio-delay-compensation', 'true', 'false', d)}; then
-        sed -i '/\[Service\]/a Environment=RMFAUDIOCAP_DELAY_COMPENSATION_OVERRIDE=${BT_AUDIO_DELAY_COMPENSATION_MS}' \
+        sed -i '/PIPEWIRE_RUNTIME_DIR/a Environment=RMFAUDIOCAP_DELAY_COMPENSATION_OVERRIDE=${BT_AUDIO_DELAY_COMPENSATION_MS}' \
             ${D}${systemd_system_unitdir}/rmf-audio-capture-pipewire.service
     fi
 
