@@ -425,3 +425,4 @@ SYSLOG-NG_SERVICE_pipewire_client += "pipewire.service"
 SYSLOG-NG_DESTINATION_pipewire_client = "pipewire.log"
 SYSLOG-NG_LOGRATE_pipewire_client = "medium"
 
+EXTRA_OEMESON:append = " -Davb=disabled -Dexamples=disabled"

@@ -18,6 +18,8 @@ SRC_URI = "file://rmfAudioCapturePlugin.c \
 
 S = "${WORKDIR}"
 
+BT_AUDIO_DELAY_COMPENSATION_MS ?= "0"
+
 inherit cmake pkgconfig systemd
 
 SYSTEMD_SERVICE:${PN} = "rmf-audio-capture-pipewire.service"
@@ -31,6 +33,12 @@ do_install:append() {
     # Install systemd service
     install -d ${D}${systemd_system_unitdir}
     install -m 0644 ${WORKDIR}/rmf-audio-capture-pipewire.service ${D}${systemd_system_unitdir}/rmf-audio-capture-pipewire.service
+
+    # Inject delay compensation if vendor distro feature is set
+    if ${@bb.utils.contains('DISTRO_FEATURES', 'bt-audio-delay-compensation', 'true', 'false', d)}; then
+        sed -i '/\[Service\]/a Environment=RMFAUDIOCAP_DELAY_COMPENSATION_OVERRIDE=${BT_AUDIO_DELAY_COMPENSATION_MS}' \
+            ${D}${systemd_system_unitdir}/rmf-audio-capture-pipewire.service
+    fi
 
     # Install WirePlumber Lua script
     install -d ${D}${datadir}/wireplumber/scripts
