@@ -1,0 +1,22 @@
+Index: bluez-5.48/profiles/audio/a2dp.c
+===================================================================
+--- bluez-5.48.orig/profiles/audio/a2dp.c
++++ bluez-5.48/profiles/audio/a2dp.c
+@@ -517,12 +517,16 @@ done:
+ 	if (setup->setconf_cb)
+ 		setup->setconf_cb(setup->session, setup->stream, setup->err);
+ 
++	/* Hold a ref to prevent finalize_config from freeing setup under us */
++	setup_ref(setup);      // hold protection ref
++
+ 	finalize_config(setup);
+ 
+ 	if (setup->err) {
+-		g_free(setup->err);
++		g_free(setup->err);    // safe: setup still alive
+ 		setup->err = NULL;
+ 	}
++	setup_unref(setup);            // release protection ref
+ 
+ 	setup_unref(setup);
+ 
