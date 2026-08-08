@@ -100,7 +100,7 @@ PACKAGECONFIG:class-target ??= " \
     ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'systemd-system-service systemd-user-service', '', d)} \
     ${@bb.utils.filter('DISTRO_FEATURES', 'alsa vulkan pulseaudio', d)} \
     ${PIPEWIRE_SESSION_MANAGER} \
-    ${FFMPEG_AVAILABLE} avahi flatpak gstreamer gsettings jack libusb pw-cat raop sndfile udev volume webrtc-echo-cancelling libcamera readline pipewire-alsa \
+    ${FFMPEG_AVAILABLE} avahi flatpak gstreamer gsettings jack libusb pw-cat raop sndfile udev volume webrtc-echo-cancelling readline pipewire-alsa \
 "
 
 # "jack" and "pipewire-jack" packageconfigs cannot be both enabled,
