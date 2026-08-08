@@ -10,6 +10,7 @@ DEPENDS = "pipewire virtual/media-utils media-utils-headers"
 RDEPENDS:${PN} = "pipewire wireplumber virtual/media-utils"
 
 PRIVATE_LIBS = "libpipewire-0.3.so.0"
+INSANE_SKIP:${PN} += "file-rdeps"
 
 SRC_URI = "file://rmfAudioCapturePlugin.c \
            file://CMakeLists.txt \
