@@ -9,9 +9,6 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/Apache-2.0;md5=89aea4e17d99a7ca
 DEPENDS = "pipewire virtual/media-utils media-utils-headers"
 RDEPENDS:${PN} = "pipewire wireplumber virtual/media-utils"
 
-PRIVATE_LIBS = "libpipewire-0.3.so.0"
-INSANE_SKIP:${PN} += "file-rdeps"
-
 SRC_URI = "file://rmfAudioCapturePlugin.c \
            file://CMakeLists.txt \
            file://rmf-audio-on-bluez.lua \
