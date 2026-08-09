@@ -11,33 +11,4 @@ index 27051d66e..071a787ea 100644
      #link.max-buffers                      = 64
      link.max-buffers                       = 16                       # version < 3 clients can't handle more
      #mem.warn-mlock                        = false
-@@ -221,7 +221,28 @@ context.objects = [
-             node.freewheel  = true
-         }
-     }
--
-+    { factory = adapter
-+        args = {
-+            factory.name           = api.alsa.pcm.sink
-+            node.name              = "alsa.sink"
-+            node.description       = "PCM Sink"
-+            media.class            = "Audio/Sink"
-+            api.alsa.path          = "hw:0,0"
-+            audio.channels         = 2
-+            audio.position         = "FL,FR"
-+        }
-+    }
-+   # { factory = adapter
-+   #     args = {
-+   #         factory.name           = api.alsa.pcm.source
-+   #         node.name              = "alsa.source"
-+   #         node.description       = "PCM Source"
-+   #         media.class            = "Audio/Source"
-+   #         api.alsa.path          = "hw:0,0"
-+   #         audio.channels         = 2
-+   #         audio.position         = "FL,FR"
-+   #     }
-+   # }
-     # This creates a new Source node. It will have input ports
-     # that you can link, to provide audio for this source.
-     #{ factory = adapter
+

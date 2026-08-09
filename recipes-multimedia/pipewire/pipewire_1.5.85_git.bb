@@ -18,6 +18,7 @@ SRCREV = "0a27618cd4f43017c8e2aa7b68172e64ba48eb23"
 SRC_URI = "git://gitlab.freedesktop.org/pipewire/pipewire.git;branch=master;protocol=https \
            file://pipewire_service.patch \
            file://pipewire_aac_option.patch \
+           file://pipewire-conf.patch \
            "
 
 
