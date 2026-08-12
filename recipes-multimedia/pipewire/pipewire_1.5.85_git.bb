@@ -291,8 +291,7 @@ FILES:libpipewire = " \
 # Add the bare minimum modules and plugins required to be able
 # to use libpipewire. Without these, it is essentially unusable.
 RDEPENDS:libpipewire += " \
-    ${PN}-modules-client-node \
-    ${PN}-modules-protocol-native \
+    ${PN}-modules-meta \
     ${PN}-spa-plugins-support \
     ${PN}-spa-plugins-dbus \
     ${PN}-tools \
