@@ -294,10 +294,19 @@ RDEPENDS:libpipewire += " \
     ${PN}-modules-client-node \
     ${PN}-modules-protocol-native \
     ${PN}-spa-plugins-support \
+    ${PN}-spa-plugins-dbus \
     ${PN}-tools \
     ${PN}-pulse \
     ${PN}-aes67 \
     ${PN}-spa-plugins-bluez5 \
+    ${PN}-spa-plugins-codec-bluez5-sbc \
+    ${PN}-spa-plugins-codec-bluez5-aac \
+    ${PN}-spa-plugins-codec-bluez5-hfp-cvsd \
+    ${PN}-spa-plugins-codec-bluez5-hfp-msbc \
+    ${PN}-spa-plugins-codec-bluez5-faststream \
+    ${PN}-spa-plugins-codec-bluez5-g722 \
+    ${PN}-spa-plugins-codec-bluez5-opus \
+    ${PN}-spa-plugins-codec-bluez5-opus-g \
     ${PN}-alsa \
     ${PN}-alsa-card-profile \
 "
