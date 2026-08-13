@@ -294,6 +294,13 @@ RDEPENDS:libpipewire += " \
     ${PN}-modules-meta \
     ${PN}-spa-plugins-support \
     ${PN}-spa-plugins-dbus \
+    ${PN}-spa-plugins-aec-null \
+    ${PN}-spa-plugins-audioconvert \
+    ${PN}-spa-plugins-audiomixer \
+    ${PN}-spa-plugins-audiotestsrc \
+    ${PN}-spa-plugins-volume \
+    ${PN}-spa-plugins-control \
+    ${PN}-spa-plugins-filter-graph \
     ${PN}-tools \
     ${PN}-pulse \
     ${PN}-aes67 \
