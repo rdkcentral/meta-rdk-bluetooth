@@ -246,7 +246,7 @@ PACKAGES =+ "\
     gstreamer1.0-pipewire \
 "
 PACKAGECONFIG:remove = "libcamera"
-PACKAGECONFIG:remove:aarch64 = "gstreamer"
+PACKAGECONFIG:remove:aarch64 = "gstreamer vulkan"
 PACKAGES_DYNAMIC = "^${PN}-spa-plugins.* ^${PN}-modules.* ^{PN}-alsa ^{PN}-alsa-card-profile"
 PACKAGES_DYNAMIC:class-native = ""
 
