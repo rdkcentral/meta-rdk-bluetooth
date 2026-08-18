@@ -75,6 +75,9 @@ NOINST_TOOLS = " \
 "
 
 do_install:append() {
+	install -d ${D}${includedir}/bluetooth/audio
+	install -m 0644 ${S}/profiles/audio/a2dp-codecs.h ${D}${includedir}/bluetooth/audio/a2dp-codecs.h
+
 	install -d ${D}${INIT_D_DIR}
 	install -m 0755 ${WORKDIR}/init ${D}${INIT_D_DIR}/bluetooth
 
