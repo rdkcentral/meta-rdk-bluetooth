@@ -6,16 +6,14 @@ index dc8db3f8f..8329dac6f 100644
  SystemCallFilter=@system-service
  Type=simple
  AmbientCapabilities=CAP_SYS_NICE
-+ExecStartPre=/bin/mkdir -p /tmp/pipewire
+ ExecStartPre=/bin/mkdir -p /tmp/pipewire
  ExecStart=@PW_BINARY@
  Restart=on-failure
  RuntimeDirectory=pipewire
  RuntimeDirectoryPreserve=yes
--User=pipewire
--Environment=PIPEWIRE_RUNTIME_DIR=%t/pipewire
-+Environment=PIPEWIRE_RUNTIME_DIR=/tmp/pipewire
-+Environment=PIPEWIRE_DEBUG=D
-+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket
+ Environment=PIPEWIRE_RUNTIME_DIR=/tmp/pipewire
+ Environment=PIPEWIRE_DEBUG=D
+ Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket
  
  [Install]
  Also=pipewire.socket pipewire-manager.socket

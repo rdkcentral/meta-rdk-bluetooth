@@ -22,11 +22,23 @@ local function systemctl(verb)
     return false
   end
 
-  -- Lua version differences:
-  --  * 5.1: returns status code
-  --  * 5.2+: returns (true|nil), "exit"|"signal", code
-  local success = (r1 == true) or (r1 == 0) or (r3 == 0)
-  if success then
+  -- Normalize the exit status across Lua versions. Only a genuine exit
+  -- code of 0 counts as success; a non-zero code or termination by signal
+  -- is a failure, so rmf_active stays in sync with the real unit state.
+  --  * 5.1:   os.execute returns a numeric status (0 == success)
+  --  * 5.2+:  os.execute returns (true|nil), "exit"|"signal", code
+  local exit_code
+  if type(r1) == "number" then
+    exit_code = r1            -- Lua 5.1
+  elseif r1 == true then
+    exit_code = 0             -- Lua 5.2+ success
+  elseif r2 == "exit" then
+    exit_code = r3            -- Lua 5.2+ non-zero exit
+  else
+    exit_code = -1            -- Lua 5.2+ killed by signal (or unknown)
+  end
+
+  if exit_code == 0 then
     log:info("systemctl executed successfully")
     return true
   end
