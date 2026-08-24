@@ -127,7 +127,7 @@ static uint32_t rac_format_to_bytes_per_sample(racFormat format)
         case racFormat_e16BitStereo:
         case racFormat_e16BitMonoLeft:
         case racFormat_e16BitMonoRight:
-        case racFormat_e16BitMono:
+    case racFormat_e16BitMono:
             return 2;  /* 16-bit */
         case racFormat_e24BitStereo:
         case racFormat_e24Bit5_1:
@@ -268,7 +268,7 @@ static void on_process(void *userdata)
     
     buf->datas[0].chunk->offset = 0;
     buf->datas[0].chunk->stride = stride;
-    buf->datas[0].chunk->size = size;
+    buf->datas[0].chunk->size = (buf->datas[0].maxsize / stride) * stride;
     
     pw_stream_queue_buffer(data->stream, b);
 }
@@ -393,6 +393,7 @@ int main(int argc, char *argv[])
 
     {
         size_t requested = settings.fifoSize * (size_t)RING_BUFFER_MULT; /* Make it larger for safety */
+        size_t pow2;
 
         /* Validate ring buffer size to prevent overflow */
         if (requested > (size_t)MAX_RING_BUFFER) {
@@ -402,7 +403,15 @@ int main(int argc, char *argv[])
             goto cleanup_capture;
         }
 
-        data.ring_buffer_size = (uint32_t)requested;
+        /* Round up to a power of two. The read/write paths locate the offset
+         * with 'index & (ring_buffer_size - 1)', which only equals
+         * 'index % ring_buffer_size' when the size is a power of two. This
+         * also keeps the masking correct across the uint32 index wraparound. */
+        pow2 = 1;
+        while (pow2 < requested)
+            pow2 <<= 1;
+
+        data.ring_buffer_size = (uint32_t)pow2;
     }
     
     data.ring_buffer = calloc(1, data.ring_buffer_size);
