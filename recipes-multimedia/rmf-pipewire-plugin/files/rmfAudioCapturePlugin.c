@@ -22,10 +22,10 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <signal.h>
 #include <time.h>
 #include <inttypes.h>
+#include <stdatomic.h>
 
 #include <spa/param/audio/format-utils.h>
 #include <spa/param/latency-utils.h>
@@ -45,30 +45,25 @@
 #define RING_BUFFER_MULT    2          /* Ring buffer is 2x FIFO size for safety */
 #define MAX_RING_BUFFER     (64 * 1024 * 1024)  /* Maximum 64MB ring buffer to prevent overflow */
 
-/* Timestamp logging interval - log every N callbacks to avoid flooding */
-#define TS_LOG_INTERVAL     100
-
-static inline uint64_t get_timestamp_us(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint64_t)ts.tv_sec * 1000000ULL + (uint64_t)ts.tv_nsec / 1000ULL;
-}
-
 struct data {
     struct pw_main_loop *loop;
     struct pw_stream *stream;
     
     RMF_AudioCaptureHandle capture_handle;
     
+    /* Lock-free SPSC ring buffer: producer is buffer_ready_callback (HAL
+     * thread), consumer is on_process (PipeWire RT thread). No mutex is
+     * needed to coordinate them, which keeps the RT path lock-free. */
     struct spa_ringbuffer ring;
     uint8_t *ring_buffer;
     uint32_t ring_buffer_size;
     uint32_t ring_stride;
     
-    pthread_mutex_t lock;
+    atomic_bool started;
     
-    bool started;
+    /* RT-safe drop/underrun counters, updated from the audio callbacks. */
+    atomic_uint_least64_t overflow_count;
+    atomic_uint_least64_t underrun_count;
     
     racFormat format;
     racFreq sampling_freq;
@@ -150,32 +145,22 @@ static rmf_Error buffer_ready_callback(void *cbBufferReadyParm, void *AudioCaptu
     uint32_t index;
     
     if (!data || !AudioCaptureBuffer || AudioCaptureBufferSize == 0) {
-        fprintf(stderr, "Invalid parameters in buffer_ready_callback\n");
         return RMF_INVALID_PARM;
     }
     
-    pthread_mutex_lock(&data->lock);
-    
-    if (!data->started) {
-        pthread_mutex_unlock(&data->lock);
+    if (!atomic_load_explicit(&data->started, memory_order_acquire)) {
         return RMF_SUCCESS;
     }
     
-    /* Write data to ring buffer */
-    {
-        static uint64_t cb_count = 0;
-        if ((cb_count++ % TS_LOG_INTERVAL) == 0) {
-            fprintf(stdout, "[HAL_RECV] ts=%" PRIu64 " us, size=%u bytes\n",
-                    get_timestamp_us(), AudioCaptureBufferSize);
-        }
-    }
+    /* Lock-free write into the SPSC ring buffer. */
     filled = spa_ringbuffer_get_write_index(&data->ring, &index);
     avail = data->ring_buffer_size - filled;
     
-    if (avail < AudioCaptureBufferSize) {
-        fprintf(stderr, "Ring buffer overflow, dropping %u bytes\n", AudioCaptureBufferSize - avail);
-        /* Still write what we can */
-        AudioCaptureBufferSize = avail;
+    if (avail < (int32_t)AudioCaptureBufferSize) {
+        /* Not enough room: drop the excess and write what fits. Overflow is
+         * counted rather than logged to keep this callback non-blocking. */
+        atomic_fetch_add_explicit(&data->overflow_count, 1, memory_order_relaxed);
+        AudioCaptureBufferSize = avail > 0 ? (unsigned int)avail : 0;
     }
     
     if (AudioCaptureBufferSize > 0) {
@@ -189,8 +174,6 @@ static rmf_Error buffer_ready_callback(void *cbBufferReadyParm, void *AudioCaptu
         index += AudioCaptureBufferSize;
         spa_ringbuffer_write_update(&data->ring, index);
     }
-    
-    pthread_mutex_unlock(&data->lock);
     
     return RMF_SUCCESS;
 }
@@ -213,6 +196,22 @@ static rmf_Error status_change_callback(void *cbStatusParm)
     }
     
     return RMF_SUCCESS;
+}
+
+/* Ring buffer statistics reporting interval, in seconds. */
+#define STATS_REPORT_INTERVAL_S    5
+
+/* Periodic stats report, runs on the main loop (non-RT) so I/O is safe here. */
+static void on_stats_timer(void *userdata, uint64_t expirations)
+{
+    struct data *data = userdata;
+    uint64_t overflows = atomic_load_explicit(&data->overflow_count, memory_order_relaxed);
+    uint64_t underruns = atomic_load_explicit(&data->underrun_count, memory_order_relaxed);
+
+    if (overflows || underruns) {
+        fprintf(stdout, "Audio capture stats: overflows=%" PRIu64 ", underruns=%" PRIu64 "\n",
+                overflows, underruns);
+    }
 }
 
 /* PipeWire stream process callback */
@@ -242,27 +241,16 @@ static void on_process(void *userdata)
     n_frames = buf->datas[0].maxsize / stride;
     size = n_frames * stride;
     
-    pthread_mutex_lock(&data->lock);
-    
-    /* Read from ring buffer */
-    {
-        static uint64_t proc_count = 0;
-        if ((proc_count++ % TS_LOG_INTERVAL) == 0) {
-            fprintf(stdout, "[PW_PUSH] ts=%" PRIu64 " us, max_size=%u bytes\n",
-                    get_timestamp_us(), size);
-        }
-    }
+    /* Lock-free read from the SPSC ring buffer. This runs on the PipeWire RT
+     * thread (PW_STREAM_FLAG_RT_PROCESS), so it must not lock or do I/O. */
     avail = spa_ringbuffer_get_read_index(&data->ring, &index);
     
     if (avail < (int32_t)size) {
-        /* Not enough data, fill with silence */
-        static bool underrun_logged = false;
-        if (!underrun_logged) {
-            fprintf(stderr, "Audio underrun: requested %u bytes, available %d bytes\n", size, avail);
-            underrun_logged = true;
-        }
+        /* Not enough data: fill with silence and read only what is available.
+         * Underruns are counted rather than logged to stay RT-safe. */
+        atomic_fetch_add_explicit(&data->underrun_count, 1, memory_order_relaxed);
         memset(dst, 0, size);
-        n_frames = avail / stride;
+        n_frames = avail > 0 ? (uint32_t)avail / stride : 0;
         size = n_frames * stride;
     }
     
@@ -277,8 +265,6 @@ static void on_process(void *userdata)
         index += size;
         spa_ringbuffer_read_update(&data->ring, index);
     }
-    
-    pthread_mutex_unlock(&data->lock);
     
     buf->datas[0].chunk->offset = 0;
     buf->datas[0].chunk->stride = stride;
@@ -335,6 +321,7 @@ int main(int argc, char *argv[])
     RMF_AudioCapture_Status status;
     rmf_Error err;
     int ret = 0;
+    struct spa_source *stats_timer = NULL;
     
     /* Parse command line arguments */
     const char *capture_type = RMF_AC_TYPE_PRIMARY;
@@ -348,9 +335,6 @@ int main(int argc, char *argv[])
             return -1;
         }
     }
-    
-    /* Initialize mutex */
-    pthread_mutex_init(&data.lock, NULL);
     
     /* Initialize PipeWire */
     pw_init(&argc, &argv);
@@ -497,10 +481,16 @@ int main(int argc, char *argv[])
         goto cleanup_stream;
     }
     
-    pthread_mutex_lock(&data.lock);
-    data.started = true;
-    pthread_mutex_unlock(&data.lock);
+    atomic_store_explicit(&data.started, true, memory_order_release);
     fprintf(stdout, "RMF Audio Capture started\n");
+    
+    /* Periodically report overflow/underrun counters from the main loop. */
+    stats_timer = pw_loop_add_timer(pw_main_loop_get_loop(data.loop), on_stats_timer, &data);
+    if (stats_timer) {
+        struct timespec value = { .tv_sec = STATS_REPORT_INTERVAL_S, .tv_nsec = 0 };
+        struct timespec interval = { .tv_sec = STATS_REPORT_INTERVAL_S, .tv_nsec = 0 };
+        pw_loop_update_timer(pw_main_loop_get_loop(data.loop), stats_timer, &value, &interval, false);
+    }
     
     /* Get status */
     err = RMF_AudioCapture_GetStatus(data.capture_handle, &status);
@@ -514,9 +504,10 @@ int main(int argc, char *argv[])
     pw_main_loop_run(data.loop);
     
     /* Cleanup */
-    pthread_mutex_lock(&data.lock);
-    data.started = false;
-    pthread_mutex_unlock(&data.lock);
+    atomic_store_explicit(&data.started, false, memory_order_release);
+    
+    if (stats_timer)
+        pw_loop_destroy_source(pw_main_loop_get_loop(data.loop), stats_timer);
     
     err = RMF_AudioCapture_Stop(data.capture_handle);
     if (err != RMF_SUCCESS) {
@@ -541,7 +532,6 @@ cleanup:
     if (data.loop)
         pw_main_loop_destroy(data.loop);
     
-    pthread_mutex_destroy(&data.lock);
     pw_deinit();
     
     return ret;
