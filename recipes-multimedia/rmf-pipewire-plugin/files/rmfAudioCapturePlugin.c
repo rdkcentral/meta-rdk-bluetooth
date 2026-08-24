@@ -127,7 +127,7 @@ static uint32_t rac_format_to_bytes_per_sample(racFormat format)
         case racFormat_e16BitStereo:
         case racFormat_e16BitMonoLeft:
         case racFormat_e16BitMonoRight:
-    case racFormat_e16BitMono:
+        case racFormat_e16BitMono:
             return 2;  /* 16-bit */
         case racFormat_e24BitStereo:
         case racFormat_e24Bit5_1:
@@ -158,9 +158,14 @@ static rmf_Error buffer_ready_callback(void *cbBufferReadyParm, void *AudioCaptu
     
     if (avail < (int32_t)AudioCaptureBufferSize) {
         /* Not enough room: drop the excess and write what fits. Overflow is
-         * counted rather than logged to keep this callback non-blocking. */
+         * counted rather than logged to keep this callback non-blocking.
+         * Round down to a whole number of frames so the write index stays on
+         * a frame boundary: ring_buffer_size is a power of two and is not
+         * necessarily a multiple of the frame size (e.g. 24-byte 24-bit 5.1),
+         * so 'avail' can land mid-frame. */
         atomic_fetch_add_explicit(&data->overflow_count, 1, memory_order_relaxed);
-        AudioCaptureBufferSize = avail > 0 ? (unsigned int)avail : 0;
+        AudioCaptureBufferSize = avail > 0 ?
+            ((unsigned int)avail / data->ring_stride) * data->ring_stride : 0;
     }
     
     if (AudioCaptureBufferSize > 0) {
