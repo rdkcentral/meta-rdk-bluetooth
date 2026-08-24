@@ -56,7 +56,8 @@ PACKAGESPLITFUNCS:append = " set_dynamic_metapkg_rdepends "
 WP_MODULE_SUBDIR = "wireplumber-0.5"
 
 add_custom_lua_config_scripts() {
-    install -m 0644 ${WORKDIR}/90-OE-disable-session-dbus-dependent-features.lua ${D}${datadir}/wireplumber/main.lua.d
+    install -d ${D}${datadir}/wireplumber/main.lua.d
+    install -m 0644 ${WORKDIR}/90-OE-disable-session-dbus-dependent-features.lua ${D}${datadir}/wireplumber/main.lua.d/
 }
 
 do_install[postfuncs] += "add_custom_lua_config_scripts"
@@ -130,7 +131,6 @@ SYSTEMD_SERVICE:${PN} = "wireplumber.service"
 CONFFILES:${PN} += " \
     ${datadir}/wireplumber/wireplumber.conf \
     ${datadir}/wireplumber/*.lua.d/* \
-    ${includedir}/wp/wp.h \
 "
 # Add pipewire to RRECOMMENDS, since WirePlumber expects a PipeWire daemon to
 # be present. While in theory any application that uses libpipewire can configure
@@ -151,8 +151,8 @@ RRECOMMENDS:${PN}-modules += "${PN}-modules-meta"
 
 do_install:append() {
     install -d ${D}${includedir}/wp
-    install -m 0755 ${S}/lib/wp/*.h ${D}${includedir}/wp/
-    install -m 0755 ${S}/../build/lib/wp/*.h ${D}${includedir}/wp/
+    install -m 0644 ${S}/lib/wp/*.h ${D}${includedir}/wp/
+    install -m 0644 ${S}/../build/lib/wp/*.h ${D}${includedir}/wp/
 }
 
 

@@ -233,8 +233,10 @@ static void on_process(void *userdata)
     
     buf = b->buffer;
     dst = buf->datas[0].data;
-    if (dst == NULL)
+    if (dst == NULL) {
+        pw_stream_queue_buffer(data->stream, b);
         return;
+    }
     
     stride = data->ring_stride;
     n_frames = buf->datas[0].maxsize / stride;
@@ -404,31 +406,20 @@ int main(int argc, char *argv[])
     data.sampling_freq = settings.samplingFreq;
     data.rate = rac_freq_to_rate(settings.samplingFreq);
     data.channels = rac_format_to_channels(settings.format);
-    
-    /* Create ring buffer */
-    data.ring_buffer_size = settings.fifoSize * RING_BUFFER_MULT; /* Make it larger for safety */
-    
-    /* Validate ring buffer size to prevent overflow */
-    if (data.ring_buffer_size > MAX_RING_BUFFER) {
-        fprintf(stderr, "Requested ring buffer size %u exceeds maximum %u\n", 
-                data.ring_buffer_size, MAX_RING_BUFFER);
-        ret = -1;
-        goto cleanup_capture;
+
+    {
+        size_t requested = settings.fifoSize * (size_t)RING_BUFFER_MULT; /* Make it larger for safety */
+
+        /* Validate ring buffer size to prevent overflow */
+        if (requested > (size_t)MAX_RING_BUFFER) {
+            fprintf(stderr, "Requested ring buffer size %zu exceeds maximum %u\n",
+                    requested, MAX_RING_BUFFER);
+            ret = -1;
+            goto cleanup_capture;
+        }
+
+        data.ring_buffer_size = (uint32_t)requested;
     }
-    
-    /* Round up to nearest power of 2 */
-    uint32_t size = 1;
-    while (size < data.ring_buffer_size && size < MAX_RING_BUFFER) {
-        size <<= 1;
-    }
-    
-    if (size > MAX_RING_BUFFER) {
-        fprintf(stderr, "Ring buffer size overflow during power-of-2 rounding\n");
-        ret = -1;
-        goto cleanup_capture;
-    }
-    
-    data.ring_buffer_size = size;
     
     data.ring_buffer = calloc(1, data.ring_buffer_size);
     if (!data.ring_buffer) {

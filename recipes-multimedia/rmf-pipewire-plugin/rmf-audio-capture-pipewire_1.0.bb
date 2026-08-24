@@ -61,10 +61,12 @@ pkg_postinst_ontarget:${PN}() {
     if [ -n "$D" ]; then
         exit 1
     fi
-    
-    # Check if wireplumber is running as systemd user service
-    if systemctl --user is-active wireplumber.service >/dev/null 2>&1; then
-        echo "Restarting WirePlumber to load RMF Audio Capture configuration..."
+
+    if systemctl is-active --quiet wireplumber.service >/dev/null 2>&1; then
+        echo "Restarting WirePlumber system service to load RMF Audio Capture configuration..."
+        systemctl restart wireplumber.service || true
+    elif systemctl --user is-active --quiet wireplumber.service >/dev/null 2>&1; then
+        echo "Restarting WirePlumber user service to load RMF Audio Capture configuration..."
         systemctl --user restart wireplumber.service || true
     fi
 }

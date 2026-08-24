@@ -17,7 +17,6 @@ DEPENDS += "glib-2.0-native"
 SRCREV = "0a27618cd4f43017c8e2aa7b68172e64ba48eb23"
 SRC_URI = "git://gitlab.freedesktop.org/pipewire/pipewire.git;branch=master;protocol=https \
            file://pipewire_service.patch \
-           file://pipewire_aac_option.patch \
            file://pipewire-conf.patch \
            "
 
@@ -129,7 +128,7 @@ PACKAGECONFIG[libcanberra] = "-Dlibcanberra=enabled,-Dlibcanberra=disabled,libca
 PACKAGECONFIG[libusb] = "-Dlibusb=enabled,-Dlibusb=disabled,libusb"
 PACKAGECONFIG[media-session] = ",,,pipewire-media-session,,wireplumber"
 PACKAGECONFIG[pulseaudio] = "-Dlibpulse=enabled,-Dlibpulse=disabled,pulseaudio,,pipewire-pulse"
-PACKAGECONFIG[pipewire-alsa] = "-Dpipewire-alsa=enabled,-Dpipewire-alsa=enabled,alsa-lib"
+PACKAGECONFIG[pipewire-alsa] = "-Dpipewire-alsa=enabled,-Dpipewire-alsa=disabled,alsa-lib"
 PACKAGECONFIG[pw-cat] = "-Dpw-cat=enabled,-Dpw-cat=disabled"
 PACKAGECONFIG[raop] = "-Draop=enabled,-Draop=disabled,openssl"
 # Starting with version 0.3.60, readline usage can be turned off in pw-cli.
@@ -140,6 +139,7 @@ PACKAGECONFIG[sndfile] = "-Dsndfile=enabled,-Dsndfile=disabled,libsndfile1"
 PACKAGECONFIG[systemd-system-service] = "-Dsystemd-system-service=enabled,-Dsystemd-system-service=disabled,systemd"
 # "systemd-user-service" packageconfig will only install service
 # files to rootfs but not enable them as systemd.bbclass
+# currently lacks the feature of enabling user services.
 # currently lacks the feature of enabling user services.
 PACKAGECONFIG[systemd-user-service] = "-Dsystemd-user-service=enabled,-Dsystemd-user-service=disabled,systemd"
 # pw-cat needs sndfile packageconfig to be enabled

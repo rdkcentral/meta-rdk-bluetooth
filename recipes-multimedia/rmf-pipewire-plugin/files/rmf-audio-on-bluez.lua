@@ -16,12 +16,22 @@ local function systemctl(verb)
   local cmd = string.format("systemctl --no-block %s %s", verb, RMF_UNIT)
   log:info("Running: " .. cmd)
 
-  local ok, ret = pcall(os.execute, cmd)
-  if ok then
+  local ok, r1, r2, r3 = pcall(os.execute, cmd)
+  if not ok then
+    log:warning(string.format("os.execute failed: %s", tostring(r1)))
+    return false
+  end
+
+  -- Lua version differences:
+  --  * 5.1: returns status code
+  --  * 5.2+: returns (true|nil), "exit"|"signal", code
+  local success = (r1 == true) or (r1 == 0) or (r3 == 0)
+  if success then
     log:info("systemctl executed successfully")
     return true
   end
-  log:warning(string.format("os.execute failed: %s", tostring(ret)))
+
+  log:warning(string.format("systemctl returned non-zero status: %s %s %s", tostring(r1), tostring(r2), tostring(r3)))
   return false
 end
 
