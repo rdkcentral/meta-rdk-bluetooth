@@ -6,8 +6,8 @@ SECTION = "multimedia"
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/Apache-2.0;md5=89aea4e17d99a7cacdbeed46a0096b10"
 
-DEPENDS = "pipewire virtual/media-utils media-utils-headers"
-RDEPENDS:${PN} = "pipewire wireplumber virtual/media-utils"
+DEPENDS = "pipewire virtual/vendor-media-utils media-utils-headers"
+RDEPENDS:${PN} = "pipewire wireplumber virtual/vendor-media-utils"
 
 SRC_URI = "file://rmfAudioCapturePlugin.c \
            file://CMakeLists.txt \
