@@ -6,8 +6,13 @@ SECTION = "multimedia"
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/Apache-2.0;md5=89aea4e17d99a7cacdbeed46a0096b10"
 
-DEPENDS = "pipewire virtual/vendor-media-utils media-utils-headers"
-RDEPENDS:${PN} = "pipewire wireplumber virtual/vendor-media-utils"
+MEDIA_UTILS_DEP = "${@bb.utils.contains('OVERRIDES', \
+'use_generic_media_utils', \
+'virtual/media-utils', \
+'virtual/vendor-media-utils', d)}"
+
+DEPENDS = "pipewire ${MEDIA_UTILS_DEP} media-utils-headers"
+RDEPENDS:${PN} = "pipewire wireplumber ${MEDIA_UTILS_DEP}"
 
 SRC_URI = "file://rmfAudioCapturePlugin.c \
            file://CMakeLists.txt \
