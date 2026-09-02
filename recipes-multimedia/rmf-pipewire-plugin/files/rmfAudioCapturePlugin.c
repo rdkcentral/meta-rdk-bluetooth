@@ -473,7 +473,7 @@ int main(int argc, char *argv[])
     {
         uint8_t lat_buf[1024];
         struct spa_pod_builder lat_b = SPA_POD_BUILDER_INIT(lat_buf, sizeof(lat_buf));
-        const char *delay_env = getenv("RMFAUDIOCAP_DELAY_COMPENSATION_OVERRIDE");
+        const char *delay_env = getenv("RMFAUDIOCAP_PIPEWIRE_LATENCY_OVERRIDE");
         uint32_t delay_ms = delay_env ? (uint32_t)atoi(delay_env) : 0;
         struct spa_latency_info latency = {
             .direction = SPA_DIRECTION_OUTPUT,
