@@ -5,7 +5,7 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=175792518e4ac015ab6696d16c4f607e"
 DEPENDS = "cmake-native breakpad breakpad-wrapper bluez5 glib-2.0 sdbus-c++ pipewire wireplumber"
 RDEPENDS:${PN} = "bluez5 sdbus-c++ pipewire wireplumber"
 SRC_URI = "git://github.com/rdkcentral/bluetooth-sdk.git;protocol=https;branch=RDK-61473-rebased-stub"
-SRCREV = "643180cf8bfa28700b6bd37300d62d61df8d98dd"
+SRCREV = "792cf833fa70cd4d9b69aa5addbb5ecc54f6ac9c"
 S = "${WORKDIR}/git"
 
 CFLAGS:append = " -I${STAGING_INCDIR} "
