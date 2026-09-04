@@ -473,17 +473,21 @@ int main(int argc, char *argv[])
     {
         uint8_t lat_buf[1024];
         struct spa_pod_builder lat_b = SPA_POD_BUILDER_INIT(lat_buf, sizeof(lat_buf));
-        const char *delay_env = getenv("RMFAUDIOCAP_PIPEWIRE_LATENCY_OVERRIDE");
-        uint32_t delay_ms = delay_env ? (uint32_t)atoi(delay_env) : 0;
+        /* PipeWire latency override */
+        const char *latency_env = getenv("RMFAUDIOCAP_PIPEWIRE_LATENCY_OVERRIDE");
+        uint32_t latency_ms = latency_env ? (uint32_t)atoi(latency_env) : 0;
         struct spa_latency_info latency = {
             .direction = SPA_DIRECTION_OUTPUT,
-            .min_ns = (uint64_t)delay_ms * SPA_NSEC_PER_MSEC,
-            .max_ns = (uint64_t)delay_ms * SPA_NSEC_PER_MSEC,
+            .min_ns = (uint64_t)latency_ms * SPA_NSEC_PER_MSEC,
+            .max_ns = (uint64_t)latency_ms * SPA_NSEC_PER_MSEC,
         };
         const struct spa_pod *lat_params[1];
         lat_params[0] = spa_latency_build(&lat_b, SPA_PARAM_Latency, &latency);
         pw_stream_update_params(data.stream, lat_params, 1);
         fprintf(stdout, "Source latency declared: %u ms (direction=OUTPUT)\n", delay_ms);
+        /* SOC HAL delay compensation override */
+        const char *delay_env = getenv("RMFAUDIOCAP_SOC_DELAY_OVERRIDE");
+        uint32_t delay_ms = delay_env ? (uint32_t)atoi(delay_env) : 610;
         settings.delayCompensation_ms = delay_ms;
     }
     
