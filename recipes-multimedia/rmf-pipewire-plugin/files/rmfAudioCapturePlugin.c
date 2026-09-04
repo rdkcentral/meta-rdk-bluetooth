@@ -41,7 +41,7 @@
 /* Constants for buffer sizing */
 #define FIFO_DURATION_MS    500        /* Default FIFO size in milliseconds */
 #define FIFO_DURATION_DIV   2          /* Divisor for FIFO duration calculation (500ms = 1000/2) */
-#define THRESHOLD_DIVISOR   4          /* Threshold is 1/4 of FIFO size */
+#define THRESHOLD_DIVISOR   8          /* Threshold is 1/8 of FIFO size (mirrors btmgr 8:1 fifo:threshold ratio) */
 #define RING_BUFFER_MULT    2          /* Ring buffer is 2x FIFO size for safety */
 #define MAX_RING_BUFFER     (64 * 1024 * 1024)  /* Maximum 64MB ring buffer to prevent overflow */
 
