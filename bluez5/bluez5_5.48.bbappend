@@ -69,6 +69,8 @@ SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://bluez-5.48-070-RDK-59395-BT-SIG-PTS-certification-changes.patch \
     file://bluez-5.48-073-RDKOSS-1008-endpoint-crash.patch \
     file://bluez-5.48-074-LLAMA-18285-increase-gatt-notify-pipe-buffer.patch \
+    file://0001-add-bt-secure-path-setup.patch \
+    file://bt_secure_path_setup.sh \
     "
 
 # Removed testtools package as it has a depedncy with python
@@ -76,9 +78,12 @@ PACKAGES:remove = "${PN}-testtools"
 # Add DISTRO_FEATURES:append = ' blueztest' in rdke-distros.inc if we need to add ${PN}-testtools
 PACKAGES += "${@bb.utils.contains('DISTRO_FEATURES', 'blueztest', '${PN}-testtools', '', d)}"
 do_install:append() {
+    install -d ${D}${sysconfdir}/bluetooth/
+    install -m 0755 ${WORKDIR}/bt_secure_path_setup.sh ${D}${sysconfdir}/bluetooth/
     #Files inside /usr/lib/bluez are test files. These are required only when PACKAGE ${PN}-testtools is added. Without the packages, these files are not required and observing package_qa error since the files are not shipped. Remove it unless the distro is defined.
     if ${@bb.utils.contains('DISTRO_FEATURES', 'blueztest', 'false', 'true', d)}; then
         rm -rf ${D}${libdir}/bluez
     fi
 }
+FILES:${PN} += "${sysconfdir}/bluetooth/bt_secure_path_setup.sh"
 
