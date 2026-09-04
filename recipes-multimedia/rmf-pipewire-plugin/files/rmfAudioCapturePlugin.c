@@ -484,10 +484,10 @@ int main(int argc, char *argv[])
         const struct spa_pod *lat_params[1];
         lat_params[0] = spa_latency_build(&lat_b, SPA_PARAM_Latency, &latency);
         pw_stream_update_params(data.stream, lat_params, 1);
-        fprintf(stdout, "Source latency declared: %u ms (direction=OUTPUT)\n", delay_ms);
+        fprintf(stdout, "Source latency declared: %u ms (direction=OUTPUT)\n", latency_ms);
         /* SOC HAL delay compensation override */
         const char *delay_env = getenv("RMFAUDIOCAP_SOC_DELAY_OVERRIDE");
-        uint32_t delay_ms = delay_env ? (uint32_t)atoi(delay_env) : 610;
+        uint32_t delay_ms = delay_env ? (uint32_t)atoi(delay_env) : 0;
         settings.delayCompensation_ms = delay_ms;
     }
     
