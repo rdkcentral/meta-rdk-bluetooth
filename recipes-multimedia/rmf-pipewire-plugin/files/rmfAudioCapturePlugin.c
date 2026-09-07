@@ -81,6 +81,17 @@ struct data {
     atomic_uint_least64_t cb_gap_sum_ns;
     atomic_uint_least64_t cb_gap_count;
 
+    /* Debug: HAL silence-injection detector. The Amlogic HAL producer
+     * (rmfAudioCapture.c) enters SILENCE_INSERT state when its kernel-side
+     * capture buffer runs dry for >50 ms and starts memset(buf, 0, len)-ing
+     * the callback payload. That silence is indistinguishable from a genuine
+     * quiet passage at the plugin level, but it is exactly what an audible
+     * shutter sounds like at the BT sink. A cheap all-zero check on a few
+     * sample points detects it (HAL zeros the WHOLE buffer, so multi-point
+     * sampling has near-zero false-positive risk). */
+    atomic_uint_least64_t silence_bytes;
+    atomic_uint_least64_t silence_chunks;
+
     /* Debug: optional raw PCM dump of what the HAL delivers into the ring
      * buffer (mirrors btmgr's audio-capture-*.txt dump). Enabled by the
      * RMFAUDIOCAP_DUMP_FILE env var. Only touched from buffer_ready_callback
@@ -210,6 +221,24 @@ static rmf_Error buffer_ready_callback(void *cbBufferReadyParm, void *AudioCaptu
         fwrite(AudioCaptureBuffer, 1, AudioCaptureBufferSize, data->dump_fp);
     }
 
+    /* Cheap HAL-silence detector: check 3 sample points (start, middle, end)
+     * for all-zero content. The Amlogic HAL's SILENCE_INSERT path memsets the
+     * entire buffer to 0, so a 12-byte all-zero probe matches with extremely
+     * low false-positive rate on real music. Genuine silence in program
+     * material is still counted, but the counter climbs sharply only when
+     * the HAL is minting silence, which is what we care about. */
+    if (AudioCaptureBufferSize >= 16) {
+        const uint8_t *p = (const uint8_t *)AudioCaptureBuffer;
+        uint32_t mid  = AudioCaptureBufferSize / 2;
+        uint32_t last = AudioCaptureBufferSize - 4;
+        if ((*(const uint32_t *)&p[0])   == 0 &&
+            (*(const uint32_t *)&p[mid]) == 0 &&
+            (*(const uint32_t *)&p[last])== 0) {
+            atomic_fetch_add_explicit(&data->silence_bytes,  AudioCaptureBufferSize, memory_order_relaxed);
+            atomic_fetch_add_explicit(&data->silence_chunks, 1, memory_order_relaxed);
+        }
+    }
+
     /* Lock-free write into the SPSC ring buffer. */
     filled = spa_ringbuffer_get_write_index(&data->ring, &index);
     avail = data->ring_buffer_size - filled;
@@ -291,6 +320,24 @@ static void on_stats_timer(void *userdata, uint64_t expirations)
     double gap_avg_ms = gap_count ? ((double)gap_sum_ns / (double)gap_count) / 1e6 : 0.0;
     double gap_max_ms = (double)gap_max_ns / 1e6;
 
+    /* HAL silence-injection counters for this window. */
+    uint64_t sil_bytes  = atomic_exchange_explicit(&data->silence_bytes,  0, memory_order_relaxed);
+    uint64_t sil_chunks = atomic_exchange_explicit(&data->silence_chunks, 0, memory_order_relaxed);
+
+    /* Poll the HAL's own overflow/underflow counters. GetStatus takes an
+     * internal mutex; this is fine here because we run on the main loop, not
+     * the RT thread. HAL 'underflows' rise whenever the kernel capture buffer
+     * runs empty for a tick; sustained rises correlate with silence_bytes
+     * because SILENCE_INSERT is entered after >50 ms of empty ticks. */
+    unsigned int hal_overflows = 0, hal_underflows = 0;
+    if (data->capture_handle) {
+        RMF_AudioCapture_Status hal_st;
+        if (RMF_AudioCapture_GetStatus(data->capture_handle, &hal_st) == RMF_SUCCESS) {
+            hal_overflows  = hal_st.overflows;
+            hal_underflows = hal_st.underflows;
+        }
+    }
+
     /* Snapshot the current ring fill level. We only need the read index for
      * fill = write - read, but spa_ringbuffer_get_read_index() returns the
      * "avail to read" value directly, which is exactly the fill level. This
@@ -309,10 +356,13 @@ static void on_stats_timer(void *userdata, uint64_t expirations)
     fprintf(stdout,
             "Audio capture stats: cb/s=%.2f, bytes/s=%.0f, ring_filled=%d/%u B (~%u ms), "
             "cb_gap_ms avg=%.2f max=%.2f, "
+            "HAL over=%u under=%u, silence=%" PRIu64 " B in %" PRIu64 " chunks, "
             "overflows=%" PRIu64 ", underruns=%" PRIu64 " (window cbs=%" PRIu64 ", bytes=%" PRIu64 " in %ds)\n",
             cbs_per_sec, bytes_per_sec,
             ring_filled, data->ring_buffer_size, ring_size_ms,
             gap_avg_ms, gap_max_ms,
+            hal_overflows, hal_underflows,
+            sil_bytes, sil_chunks,
             overflows, underruns,
             cbs, bytes, STATS_REPORT_INTERVAL_S);
 
