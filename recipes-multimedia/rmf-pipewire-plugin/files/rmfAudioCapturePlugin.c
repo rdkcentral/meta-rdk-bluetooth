@@ -70,6 +70,17 @@ struct data {
     atomic_uint_least64_t capture_callbacks;
     atomic_uint_least64_t capture_bytes;
 
+    /* Debug: inter-callback gap timing (CLOCK_MONOTONIC, ns). Catches
+     * producer-side micro-stalls that the 5s average bytes/s figure would
+     * smooth over: e.g. a 200 ms HAL stall followed by a fat catch-up
+     * callback still averages to 192 KB/s, but max_gap will spike.
+     * Single writer (HAL thread) updates last_ns/max/sum/count; the stats
+     * timer resets them via atomic_exchange. */
+    atomic_uint_least64_t cb_last_ns;
+    atomic_uint_least64_t cb_gap_max_ns;
+    atomic_uint_least64_t cb_gap_sum_ns;
+    atomic_uint_least64_t cb_gap_count;
+
     /* Debug: optional raw PCM dump of what the HAL delivers into the ring
      * buffer (mirrors btmgr's audio-capture-*.txt dump). Enabled by the
      * RMFAUDIOCAP_DUMP_FILE env var. Only touched from buffer_ready_callback
@@ -169,6 +180,28 @@ static rmf_Error buffer_ready_callback(void *cbBufferReadyParm, void *AudioCaptu
     atomic_fetch_add_explicit(&data->capture_callbacks, 1, memory_order_relaxed);
     atomic_fetch_add_explicit(&data->capture_bytes, AudioCaptureBufferSize, memory_order_relaxed);
 
+    /* Inter-callback gap timing. A stall in the HAL producer (or in the disk
+     * write above, if the dump is enabled) shows up here as a max gap much
+     * larger than the nominal ~43 ms (48 kHz S16 stereo @ threshold/4).
+     * Single-writer semantics: only this thread updates the fields; the
+     * stats timer resets them atomically. The max-update is a plain load /
+     * compare / store (no CAS): if the stats timer resets to 0 between our
+     * load and store, we correctly record the current gap as the new max. */
+    {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        uint64_t now_ns = (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
+        uint64_t last_ns = atomic_exchange_explicit(&data->cb_last_ns, now_ns, memory_order_relaxed);
+        if (last_ns != 0) {
+            uint64_t gap_ns = now_ns - last_ns;
+            atomic_fetch_add_explicit(&data->cb_gap_sum_ns, gap_ns, memory_order_relaxed);
+            atomic_fetch_add_explicit(&data->cb_gap_count, 1, memory_order_relaxed);
+            uint64_t old_max = atomic_load_explicit(&data->cb_gap_max_ns, memory_order_relaxed);
+            if (gap_ns > old_max)
+                atomic_store_explicit(&data->cb_gap_max_ns, gap_ns, memory_order_relaxed);
+        }
+    }
+
     /* Optional raw PCM dump of what the HAL delivered. Same idea as btmgr's
      * audio-capture-*.txt dump, used to confirm whether shutter originates
      * at the capture source. Callback runs on the HAL thread (not the
@@ -247,6 +280,17 @@ static void on_stats_timer(void *userdata, uint64_t expirations)
     double cbs_per_sec   = (double)cbs   / (double)STATS_REPORT_INTERVAL_S;
     double bytes_per_sec = (double)bytes / (double)STATS_REPORT_INTERVAL_S;
 
+    /* Snapshot and reset the callback-gap timing window. gap_avg is over the
+     * gaps we actually measured (== cbs - 1 in a steady window); gap_max is
+     * the worst single stall. Nominal gap at 48 kHz S16 stereo with
+     * threshold=fifoSize/4 is ~43 ms; anything much larger is a producer
+     * hiccup that could be audible even though bytes/s still averages right. */
+    uint64_t gap_max_ns = atomic_exchange_explicit(&data->cb_gap_max_ns, 0, memory_order_relaxed);
+    uint64_t gap_sum_ns = atomic_exchange_explicit(&data->cb_gap_sum_ns, 0, memory_order_relaxed);
+    uint64_t gap_count  = atomic_exchange_explicit(&data->cb_gap_count,  0, memory_order_relaxed);
+    double gap_avg_ms = gap_count ? ((double)gap_sum_ns / (double)gap_count) / 1e6 : 0.0;
+    double gap_max_ms = (double)gap_max_ns / 1e6;
+
     /* Snapshot the current ring fill level. We only need the read index for
      * fill = write - read, but spa_ringbuffer_get_read_index() returns the
      * "avail to read" value directly, which is exactly the fill level. This
@@ -264,9 +308,11 @@ static void on_stats_timer(void *userdata, uint64_t expirations)
      * counts are cumulative since start. */
     fprintf(stdout,
             "Audio capture stats: cb/s=%.2f, bytes/s=%.0f, ring_filled=%d/%u B (~%u ms), "
+            "cb_gap_ms avg=%.2f max=%.2f, "
             "overflows=%" PRIu64 ", underruns=%" PRIu64 " (window cbs=%" PRIu64 ", bytes=%" PRIu64 " in %ds)\n",
             cbs_per_sec, bytes_per_sec,
             ring_filled, data->ring_buffer_size, ring_size_ms,
+            gap_avg_ms, gap_max_ms,
             overflows, underruns,
             cbs, bytes, STATS_REPORT_INTERVAL_S);
 
@@ -386,7 +432,15 @@ int main(int argc, char *argv[])
     rmf_Error err;
     int ret = 0;
     struct spa_source *stats_timer = NULL;
-    
+
+    /* Force line buffering on stdout so each log line shows up in journald
+     * at its real time. When stdout is a pipe (systemd captures it), stdio
+     * defaults to full block buffering, which batches ~4KB of output and
+     * makes every log line appear with the same "flush" timestamp. Line
+     * buffering flushes on '\n', giving accurate timing for the periodic
+     * stats without paying a syscall per byte. */
+    setvbuf(stdout, NULL, _IOLBF, 0);
+
     /* Parse command line arguments */
     const char *capture_type = RMF_AC_TYPE_PRIMARY;
     if (argc > 1) {
@@ -583,7 +637,20 @@ int main(int argc, char *argv[])
     
     atomic_store_explicit(&data.started, true, memory_order_release);
     fprintf(stdout, "RMF Audio Capture started\n");
-    
+
+    /* Log the settings the HAL actually accepted. Some HALs mutate the
+     * settings struct in Start() to reflect the effective values (fifoSize,
+     * threshold, delayCompensation_ms), so printing them here tells us
+     * whether our requested sizing survived — and matches the ring capacity
+     * we allocated. If fifoSize here differs from what we computed above,
+     * that explains any unexpected ring_buffer_size in the stats output. */
+    fprintf(stdout,
+            "RMF Audio Capture settings (post-Start): fifoSize=%zu, threshold=%zu, "
+            "samplingFreq=%d, format=%d, delayCompensation_ms=%u, ring_buffer_size=%u\n",
+            (size_t)settings.fifoSize, (size_t)settings.threshold,
+            settings.samplingFreq, settings.format,
+            (unsigned)settings.delayCompensation_ms, data.ring_buffer_size);
+
     /* Periodically report overflow/underrun counters from the main loop. */
     stats_timer = pw_loop_add_timer(pw_main_loop_get_loop(data.loop), on_stats_timer, &data);
     if (stats_timer) {
