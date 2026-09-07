@@ -41,7 +41,7 @@
 /* Constants for buffer sizing */
 #define FIFO_DURATION_MS    500        /* Default FIFO size in milliseconds */
 #define FIFO_DURATION_DIV   2          /* Divisor for FIFO duration calculation (500ms = 1000/2) */
-#define THRESHOLD_DIVISOR   8          /* Threshold is 1/8 of FIFO size (mirrors btmgr 8:1 fifo:threshold ratio) */
+#define THRESHOLD_DIVISOR   4          /* Threshold is 1/4 of FIFO size (fires callback ~2x as often as 1/8) */
 #define RING_BUFFER_MULT    2          /* Ring buffer is 2x FIFO size for safety */
 #define MAX_RING_BUFFER     (64 * 1024 * 1024)  /* Maximum 64MB ring buffer to prevent overflow */
 
@@ -64,7 +64,18 @@ struct data {
     /* RT-safe drop/underrun counters, updated from the audio callbacks. */
     atomic_uint_least64_t overflow_count;
     atomic_uint_least64_t underrun_count;
-    
+
+    /* Debug: count buffer_ready_callback invocations and captured bytes so we
+     * can compute callbacks/sec and bytes/sec from the stats timer. */
+    atomic_uint_least64_t capture_callbacks;
+    atomic_uint_least64_t capture_bytes;
+
+    /* Debug: optional raw PCM dump of what the HAL delivers into the ring
+     * buffer (mirrors btmgr's audio-capture-*.txt dump). Enabled by the
+     * RMFAUDIOCAP_DUMP_FILE env var. Only touched from buffer_ready_callback
+     * (HAL thread) and from main() during setup/teardown. */
+    FILE *dump_fp;
+
     racFormat format;
     racFreq sampling_freq;
     uint32_t rate;
@@ -151,7 +162,21 @@ static rmf_Error buffer_ready_callback(void *cbBufferReadyParm, void *AudioCaptu
     if (!atomic_load_explicit(&data->started, memory_order_acquire)) {
         return RMF_SUCCESS;
     }
-    
+
+    /* Debug bookkeeping: count callbacks and bytes coming out of the HAL so
+     * the periodic stats timer can print callbacks/sec and bytes/sec. This is
+     * the rate we get from the source itself, before the PipeWire consumer. */
+    atomic_fetch_add_explicit(&data->capture_callbacks, 1, memory_order_relaxed);
+    atomic_fetch_add_explicit(&data->capture_bytes, AudioCaptureBufferSize, memory_order_relaxed);
+
+    /* Optional raw PCM dump of what the HAL delivered. Same idea as btmgr's
+     * audio-capture-*.txt dump, used to confirm whether shutter originates
+     * at the capture source. Callback runs on the HAL thread (not the
+     * PipeWire RT thread), so fwrite() here is acceptable for debug builds. */
+    if (data->dump_fp) {
+        fwrite(AudioCaptureBuffer, 1, AudioCaptureBufferSize, data->dump_fp);
+    }
+
     /* Lock-free write into the SPSC ring buffer. */
     filled = spa_ringbuffer_get_write_index(&data->ring, &index);
     avail = data->ring_buffer_size - filled;
@@ -213,10 +238,44 @@ static void on_stats_timer(void *userdata, uint64_t expirations)
     uint64_t overflows = atomic_load_explicit(&data->overflow_count, memory_order_relaxed);
     uint64_t underruns = atomic_load_explicit(&data->underrun_count, memory_order_relaxed);
 
-    if (overflows || underruns) {
-        fprintf(stdout, "Audio capture stats: overflows=%" PRIu64 ", underruns=%" PRIu64 "\n",
-                overflows, underruns);
-    }
+    /* Snapshot and reset the per-interval capture counters so we can print a
+     * "callbacks per second" and "bytes per second" figure. These are read
+     * with atomic_exchange so the deltas belong to this reporting window. */
+    uint64_t cbs   = atomic_exchange_explicit(&data->capture_callbacks, 0, memory_order_relaxed);
+    uint64_t bytes = atomic_exchange_explicit(&data->capture_bytes, 0, memory_order_relaxed);
+
+    double cbs_per_sec   = (double)cbs   / (double)STATS_REPORT_INTERVAL_S;
+    double bytes_per_sec = (double)bytes / (double)STATS_REPORT_INTERVAL_S;
+
+    /* Snapshot the current ring fill level. We only need the read index for
+     * fill = write - read, but spa_ringbuffer_get_read_index() returns the
+     * "avail to read" value directly, which is exactly the fill level. This
+     * is a plain load of the ring indices, safe from any thread. */
+    uint32_t ring_index;
+    int32_t  ring_filled = spa_ringbuffer_get_read_index(&data->ring, &ring_index);
+    if (ring_filled < 0)
+        ring_filled = 0;
+
+    uint32_t ring_size_ms = data->rate ?
+        (uint32_t)((uint64_t)ring_filled * 1000ULL / ((uint64_t)data->rate * data->ring_stride)) : 0;
+
+    /* Always print the stats line — even when there are no drops — so we can
+     * see the ring stays balanced during normal playback. Overflow/underrun
+     * counts are cumulative since start. */
+    fprintf(stdout,
+            "Audio capture stats: cb/s=%.2f, bytes/s=%.0f, ring_filled=%d/%u B (~%u ms), "
+            "overflows=%" PRIu64 ", underruns=%" PRIu64 " (window cbs=%" PRIu64 ", bytes=%" PRIu64 " in %ds)\n",
+            cbs_per_sec, bytes_per_sec,
+            ring_filled, data->ring_buffer_size, ring_size_ms,
+            overflows, underruns,
+            cbs, bytes, STATS_REPORT_INTERVAL_S);
+
+    /* Flush the raw PCM dump from the main loop (non-RT, non-HAL). This keeps
+     * the file on disk up to date roughly every STATS_REPORT_INTERVAL_S so a
+     * kill -9 loses at most one interval of data, without paying the syscall
+     * cost on every HAL callback (which is what _IONBF would have done). */
+    if (data->dump_fp)
+        fflush(data->dump_fp);
 }
 
 /* PipeWire stream process callback */
@@ -490,7 +549,30 @@ int main(int argc, char *argv[])
         uint32_t delay_ms = delay_env ? (uint32_t)atoi(delay_env) : 0;
         settings.delayCompensation_ms = delay_ms;
     }
-    
+
+    /* Optional raw PCM dump: if RMFAUDIOCAP_DUMP_FILE is set, open the file
+     * before starting capture so buffer_ready_callback can append into it.
+     * This mirrors the debug dump in btmgr's audiocap path and lets us prove
+     * whether shutter comes from the source or from the PipeWire consumer. */
+    {
+        const char *dump_path = getenv("RMFAUDIOCAP_DUMP_FILE");
+        if (dump_path && dump_path[0] != '\0') {
+            data.dump_fp = fopen(dump_path, "wb");
+            if (data.dump_fp) {
+                /* Use default full buffering (do NOT force _IONBF): unbuffered
+                 * writes make every buffer_ready_callback do a write() syscall
+                 * on the HAL thread, which can stall the producer and cause
+                 * ring underruns on the consumer side. The stats timer below
+                 * calls fflush() periodically from the main loop, so the file
+                 * stays reasonably up-to-date without touching the HAL path. */
+                fprintf(stdout, "Raw PCM dump enabled -> %s (format=%d, rate=%u, ch=%u, stride=%u)\n",
+                        dump_path, data.format, data.rate, data.channels, data.ring_stride);
+            } else {
+                fprintf(stderr, "Failed to open dump file '%s': %s\n", dump_path, strerror(errno));
+            }
+        }
+    }
+
     /* Start RMF Audio Capture */
     err = RMF_AudioCapture_Start(data.capture_handle, &settings);
     if (err != RMF_SUCCESS) {
@@ -531,7 +613,14 @@ int main(int argc, char *argv[])
     if (err != RMF_SUCCESS) {
         fprintf(stderr, "Failed to stop RMF Audio Capture: %d\n", err);
     }
-    
+
+    /* Close the raw PCM dump, if it was opened. Must happen after Stop() so
+     * we don't race with a late buffer_ready_callback still writing to it. */
+    if (data.dump_fp) {
+        fclose(data.dump_fp);
+        data.dump_fp = NULL;
+    }
+
 cleanup_stream:
     if (data.stream)
         pw_stream_destroy(data.stream);
