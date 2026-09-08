@@ -553,6 +553,37 @@ int main(int argc, char *argv[])
     if (settings.threshold == 0) {
         settings.threshold = settings.fifoSize / THRESHOLD_DIVISOR;
     }
+
+    /* Mimic btmgr's sizing formula: threshold = downstream chunk size, and
+     * fifoSize = 8 * threshold (see btrMgr_audioCap.c BTRMgr_AC_Start). Btmgr's
+     * common chunk value is 4096 B on this platform, so default threshold=4096
+     * and fifoSize=32768. This halves the per-callback payload (~21 ms vs the
+     * HAL default ~43 ms) which is what btmgr runs with, and makes silence
+     * events at the kernel `cap_delay` bug half as long each.
+     *
+     * Both are overridable via env vars for on-device experimentation without
+     * recompiling — same pattern as RMFAUDIOCAP_SOC_DELAY_OVERRIDE and
+     * RMFAUDIOCAP_PIPEWIRE_LATENCY_OVERRIDE. If the override is 0/invalid the
+     * HAL/computed default above is kept. */
+    {
+        const char *thr_env  = getenv("RMFAUDIOCAP_THRESHOLD_OVERRIDE");
+        const char *fifo_env = getenv("RMFAUDIOCAP_FIFO_SIZE_OVERRIDE");
+        size_t thr_env_val  = thr_env  ? (size_t)atoi(thr_env)  : 0;
+        size_t fifo_env_val = fifo_env ? (size_t)atoi(fifo_env) : 0;
+
+        if (thr_env_val == 0)
+            thr_env_val = 4096;                    /* btmgr-like default */
+        if (fifo_env_val == 0)
+            fifo_env_val = thr_env_val * 8;        /* btmgr: fifoSize = 8 * threshold */
+
+        settings.threshold = thr_env_val;
+        settings.fifoSize  = fifo_env_val;
+        fprintf(stdout,
+                "Applying btmgr-mimic sizing: fifoSize=%zu, threshold=%zu%s%s\n",
+                (size_t)settings.fifoSize, (size_t)settings.threshold,
+                thr_env  ? " (threshold from env)" : "",
+                fifo_env ? " (fifoSize from env)"  : "");
+    }
     
     data.format = settings.format;
     data.sampling_freq = settings.samplingFreq;
