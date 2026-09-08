@@ -70,7 +70,7 @@ SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://bluez-5.48-073-RDKOSS-1008-endpoint-crash.patch \
     file://bluez-5.48-074-LLAMA-18285-increase-gatt-notify-pipe-buffer.patch \
     file://bt_secure_path_setup.sh \
-    file://0001-add-bt-secure-path-setup.patch \
+    file://bluez-5.48-071-migrate_ble_pairing_data_to_securePath.patch \
     "
 
 # Removed testtools package as it has a depedncy with python
