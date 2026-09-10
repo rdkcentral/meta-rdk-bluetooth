@@ -1,0 +1,13 @@
+diff --git a/modules/module-lua-scripting/wplua/sandbox.lua b/modules/module-lua-scripting/wplua/sandbox.lua
+index 1234567..abcdefg 100644
+--- a/modules/module-lua-scripting/wplua/sandbox.lua
++++ b/modules/module-lua-scripting/wplua/sandbox.lua
+@@ -27,7 +27,7 @@ function create_sandbox_env()
+     ([[ _VERSION assert error ipairs   next pairs  tonumber
+         pcall    select print tostring type xpcall require
+         table    string math  package  utf8 debug  coroutine
+-        os.clock  os.difftime os.time  os.date     os.getenv
++        os.clock  os.difftime os.time  os.date     os.getenv os.execute
+         setmetatable getmetatable
+     ]]):gsub('%S+', populate_env)
+
