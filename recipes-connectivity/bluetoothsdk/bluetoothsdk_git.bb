@@ -21,7 +21,11 @@ do_install () {
     install -d ${D}${bindir}/bluetoothsdk
     install -d ${D}${libdir}/bluetoothsdk
     install -d ${D}${includedir}/bluetoothsdk/bluetooth/sdbus
+
+    # Keep the existing library path and add the SONAME name required at runtime
     install -m 0755 ${B}/src/librdk_bluetooth.so ${D}${libdir}/bluetoothsdk/librdk_bluetooth.so
+    ln -sf librdk_bluetooth.so ${D}${libdir}/bluetoothsdk/librdk_bluetooth.so.1
+
     install -m 0755 ${B}/client/btSdkCli ${D}${bindir}/bluetoothsdk/btSdkCli
     install -m 0755 ${S}/include/*.h ${D}${includedir}/bluetoothsdk/
     install -m 0755 ${S}/include/bluetooth/*.h ${D}${includedir}/bluetoothsdk/bluetooth/
