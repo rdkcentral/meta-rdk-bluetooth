@@ -12,9 +12,6 @@ MEDIA_UTILS_DEP:use_generic_media_utils = "virtual/media-utils"
 DEPENDS = "pipewire ${MEDIA_UTILS_DEP} media-utils-headers"
 RDEPENDS:${PN} = "pipewire wireplumber ${MEDIA_UTILS_DEP}"
 
-#DEPENDS = "pipewire virtual/vendor-media-utils media-utils-headers"
-#RDEPENDS:${PN} = "pipewire wireplumber virtual/vendor-media-utils"
-
 SRC_URI = "file://rmfAudioCapturePlugin.c \
            file://CMakeLists.txt \
            file://rmf-audio-on-bluez.lua \

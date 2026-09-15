@@ -4,8 +4,8 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=175792518e4ac015ab6696d16c4f607e"
 
 DEPENDS = "cmake-native breakpad breakpad-wrapper bluez5 glib-2.0 sdbus-c++ pipewire wireplumber"
 RDEPENDS:${PN} = "bluez5 sdbus-c++ pipewire wireplumber"
-SRC_URI = "git://github.com/rdkcentral/bluetooth-sdk.git;protocol=https;branch=RDK-61473-rebased"
-SRCREV = "6b4f266fc836f9b76476edb1867eb2625942ce7d"
+SRC_URI = "git://github.com/rdkcentral/bluetooth-sdk.git;protocol=https;branch=RDK-61473-rebased-stub"
+SRCREV = "792cf833fa70cd4d9b69aa5addbb5ecc54f6ac9c"
 S = "${WORKDIR}/git"
 
 CFLAGS:append = " -I${STAGING_INCDIR} "
@@ -21,7 +21,11 @@ do_install () {
     install -d ${D}${bindir}/bluetoothsdk
     install -d ${D}${libdir}/bluetoothsdk
     install -d ${D}${includedir}/bluetoothsdk/bluetooth/sdbus
+
+    # Keep the existing library path and add the SONAME name required at runtime
     install -m 0755 ${B}/src/librdk_bluetooth.so ${D}${libdir}/bluetoothsdk/librdk_bluetooth.so
+    ln -sf librdk_bluetooth.so ${D}${libdir}/bluetoothsdk/librdk_bluetooth.so.1
+
     install -m 0755 ${B}/client/btSdkCli ${D}${bindir}/bluetoothsdk/btSdkCli
     install -m 0755 ${S}/include/*.h ${D}${includedir}/bluetoothsdk/
     install -m 0755 ${S}/include/bluetooth/*.h ${D}${includedir}/bluetoothsdk/bluetooth/
