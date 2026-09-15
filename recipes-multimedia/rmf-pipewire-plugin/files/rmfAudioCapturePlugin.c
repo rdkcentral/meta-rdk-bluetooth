@@ -84,6 +84,7 @@ struct data {
     uint32_t ring_stride;
     
     atomic_bool started;
+    atomic_bool pw_streaming;
     
     /* RT-safe drop/underrun counters, updated from the audio callbacks. */
     atomic_uint_least64_t overflow_count;
@@ -224,6 +225,10 @@ static rmf_Error buffer_ready_callback(void *cbBufferReadyParm, void *AudioCaptu
         return RMF_SUCCESS;
     }
 
+    if (!atomic_load(&data->pw_streaming)) {
+        fprintf(stdout,"Pipewire streaming not started so not allowed to fill the ring buffer \n");
+        return RMF_SUCCESS;
+    }
     /* Debug bookkeeping: count callbacks and bytes coming out of the HAL so
      * the periodic stats timer can print callbacks/sec and bytes/sec. This is
      * the rate we get from the source itself, before the PipeWire consumer. */
@@ -559,6 +564,11 @@ static void on_stream_state_changed(void *userdata, enum pw_stream_state old, en
     if (state == PW_STREAM_STATE_ERROR) {
         fprintf(stderr, "Stream error: %s\n", error);
         pw_main_loop_quit(data->loop);
+    }
+
+    if (state == PW_STREAM_STATE_STREAMING) {
+        fprintf(stdout, "Marked the state as pipewire streaming ....\n")
+        atomic_store(&data->pw_streaming, true);
     }
 }
 
