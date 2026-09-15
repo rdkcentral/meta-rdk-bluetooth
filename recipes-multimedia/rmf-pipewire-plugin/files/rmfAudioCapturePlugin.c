@@ -840,7 +840,7 @@ int main(int argc, char *argv[])
             }
         }
     }
-
+    sleep(10);
     /* Start RMF Audio Capture */
     err = RMF_AudioCapture_Start(data.capture_handle, &settings);
     if (err != RMF_SUCCESS) {
