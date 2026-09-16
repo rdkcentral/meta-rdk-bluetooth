@@ -2,6 +2,9 @@ SUMMARY = "Bluetooth SDK"
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=175792518e4ac015ab6696d16c4f607e"
 
+PROVIDES += "virtual/vendor-bluetooth-sdk"
+RPROVIDES:${PN} = "virtual/vendor-bluetooth-sdk"
+
 DEPENDS = "cmake-native breakpad breakpad-wrapper bluez5 glib-2.0 sdbus-c++ pipewire wireplumber"
 RDEPENDS:${PN} = "bluez5 sdbus-c++ pipewire wireplumber"
 SRC_URI = "git://github.com/rdkcentral/bluetooth-sdk.git;protocol=https;branch=RDK-61473-rebased-stub"
