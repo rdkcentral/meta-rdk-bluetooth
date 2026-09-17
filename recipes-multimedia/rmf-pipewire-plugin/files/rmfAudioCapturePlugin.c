@@ -47,28 +47,6 @@
                                         * on_process bursts and 'overflows' counter climbs). */
 #define MAX_RING_BUFFER     (64 * 1024 * 1024)  /* Maximum 64MB ring buffer to prevent overflow */
 
-/* Debug: per-callback log-record ring for the read side (on_process). We
- * cannot printf from on_process because it runs on the PipeWire RT thread
- * (PW_STREAM_FLAG_RT_PROCESS) — stdio locks / write() syscalls could stall
- * the RT thread and cause underruns, which would pollute the very numbers we
- * want to observe. Instead, on_process writes a tiny struct into this SPSC
- * ring (no locks, no I/O, just an atomic increment and three memory writes)
- * and the main-loop stats timer drains and prints them.
- *
- * Size = 1024 slots (power of two so 'idx & (LOG_RING_SIZE-1)' == modulo).
- * At the default PipeWire quantum (1024 frames @ 48 kHz => ~47 on_process
- * calls per second), this holds ~22 s of records — comfortably larger than
- * the 5 s stats window so no overwrites happen under normal conditions. */
-#define LOG_RING_SIZE       1024
-
-struct log_record {
-    uint64_t rd_timestamp_ns; /* CLOCK_MONOTONIC when on_process ran, for
-                               * time-correlation with the inline WR lines. */
-    uint32_t rd_avail;      /* bytes available in ring when on_process ran */
-    uint32_t rd_size;       /* bytes we actually filled into the PW buffer */
-    uint32_t rd_maxsize;    /* buf->datas[0].maxsize — bytes PW asked for */
-};
-
 struct data {
     struct pw_main_loop *loop;
     struct pw_stream *stream;
@@ -122,21 +100,6 @@ struct data {
      * RMFAUDIOCAP_DUMP_FILE env var. Only touched from buffer_ready_callback
      * (HAL thread) and from main() during setup/teardown. */
     FILE *dump_fp;
-
-    /* Debug: RT-safe deferred logging for on_process. Producer is on_process
-     * (PW RT thread) via an atomic-fetch-add on log_write_idx; consumer is
-     * on_stats_timer (main loop thread) which walks log_read_idx forward and
-     * prints each record. Both indices are uint32 counters — the low bits
-     * pick the slot via 'idx & (LOG_RING_SIZE-1)'. */
-    struct log_record log_ring[LOG_RING_SIZE];
-    atomic_uint_least32_t log_write_idx;   /* incremented by on_process */
-    uint32_t log_read_idx;                 /* touched only by main loop */
-
-    /* Debug: cumulative counter of buffer_ready_callback invocations, for
-     * printing 'WR cb#N' alongside the RD 'cb#N' scheme. Independent of the
-     * capture_callbacks field, which is reset every 5 s by the stats timer
-     * and cannot serve as a monotonic sequence number. */
-    atomic_uint_least64_t wr_cb_seq;
 
     racFormat format;
     racFreq sampling_freq;
@@ -229,6 +192,7 @@ static rmf_Error buffer_ready_callback(void *cbBufferReadyParm, void *AudioCaptu
         fprintf(stdout,"Pipewire streaming not started so not allowed to fill the ring buffer \n");
         return RMF_SUCCESS;
     }
+
     /* Debug bookkeeping: count callbacks and bytes coming out of the HAL so
      * the periodic stats timer can print callbacks/sec and bytes/sec. This is
      * the rate we get from the source itself, before the PipeWire consumer. */
@@ -290,23 +254,6 @@ static rmf_Error buffer_ready_callback(void *cbBufferReadyParm, void *AudioCaptu
     /* Lock-free write into the SPSC ring buffer. */
     filled = spa_ringbuffer_get_write_index(&data->ring, &index);
     avail = data->ring_buffer_size - filled;
-
-    /* Debug: per-callback write-side print. HAL thread, not the PW RT thread,
-     * so fprintf here is acceptable (same latitude we already use for the
-     * PCM fwrite() above). Prints the raw numbers the caller asked about:
-     *   t       = CLOCK_MONOTONIC seconds — lets you sort WR and RD by time
-     *             (RD lines print in a 5 s burst but carry their own 't=')
-     *   cb#N    = cumulative WR callback sequence, independent of the RD
-     *             cb#N scheme, so both series can be tracked separately
-     *   cb_size = AudioCaptureBufferSize (bytes HAL is handing us)
-     *   filled  = ring bytes currently occupied (produced - consumed)
-     *   avail   = ring bytes currently free (ring_size - filled) */
-    uint64_t wr_seq = atomic_fetch_add_explicit(&data->wr_cb_seq, 1,
-                                                memory_order_relaxed);
-    fprintf(stdout,
-            "t=%.6f WR cb#%" PRIu64 ": cb_size=%u filled=%d avail=%d ring_size=%u\n",
-            (double)now_ns / 1e9, wr_seq,
-            AudioCaptureBufferSize, filled, avail, data->ring_buffer_size);
 
     if (avail < (int32_t)AudioCaptureBufferSize) {
         /* Not enough room: drop the excess and write what fits. Overflow is
@@ -438,34 +385,6 @@ static void on_stats_timer(void *userdata, uint64_t expirations)
     if (data->dump_fp)
         fflush(data->dump_fp);
 
-    /* Drain per-callback read-side log records. on_process (PW RT thread)
-     * dropped these into log_ring; we run on the main loop, so printf is
-     * safe here. Walk from our last drained position up to the current
-     * producer position — subtraction works correctly across uint32 wrap. */
-    {
-        uint32_t widx = atomic_load_explicit(&data->log_write_idx,
-                                             memory_order_acquire);
-        uint32_t rd_idx = data->log_read_idx;
-        uint32_t pending = widx - rd_idx;  /* uint32 wrap-safe */
-        if (pending > LOG_RING_SIZE) {
-            /* Producer overran us — this shouldn't happen with LOG_RING_SIZE
-             * = 1024 and a 5 s drain, but if it does we can only print the
-             * last LOG_RING_SIZE records without stale data. */
-            fprintf(stdout,
-                    "WARN: log ring overrun, %u records lost\n",
-                    pending - LOG_RING_SIZE);
-            rd_idx = widx - LOG_RING_SIZE;
-        }
-        while (rd_idx != widx) {
-            struct log_record *r = &data->log_ring[rd_idx & (LOG_RING_SIZE - 1)];
-            fprintf(stdout,
-                    "t=%.6f RD cb#%u: avail=%u size=%u maxsize=%u\n",
-                    (double)r->rd_timestamp_ns / 1e9,
-                    rd_idx, r->rd_avail, r->rd_size, r->rd_maxsize);
-            rd_idx++;
-        }
-        data->log_read_idx = rd_idx;
-    }
 }
 
 /* PipeWire stream process callback */
@@ -495,15 +414,6 @@ static void on_process(void *userdata)
     n_frames = buf->datas[0].maxsize / stride;
     size = n_frames * stride;
     uint32_t maxsize_snapshot = buf->datas[0].maxsize;
-
-    /* Debug: capture a monotonic timestamp for the log record. clock_gettime
-     * with CLOCK_MONOTONIC is a VDSO call on Linux (~30 ns, no syscall) so
-     * it is RT-safe. Same clock as the WR side, so the two 't=' values can
-     * be compared directly by subtracting. */
-    struct timespec now_ts;
-    clock_gettime(CLOCK_MONOTONIC, &now_ts);
-    uint64_t rd_now_ns = (uint64_t)now_ts.tv_sec * 1000000000ULL +
-                         (uint64_t)now_ts.tv_nsec;
 
     /* Lock-free read from the SPSC ring buffer. This runs on the PipeWire RT
      * thread (PW_STREAM_FLAG_RT_PROCESS), so it must not lock or do I/O. */
@@ -535,21 +445,6 @@ static void on_process(void *userdata)
     buf->datas[0].chunk->stride = stride;
     buf->datas[0].chunk->size = (buf->datas[0].maxsize / stride) * stride;
 
-    /* Debug: drop a log record into the SPSC log ring. RT-safe — one atomic
-     * fetch-add + a handful of plain stores. The main-loop stats timer will
-     * drain and print these later. Slot picked via power-of-two mask; wraps
-     * naturally when widx wraps at 2^32. Timestamp lets on_stats_timer print
-     * a 't=' value that lines up with the inline WR 't=' values. */
-    {
-        uint32_t widx = atomic_fetch_add_explicit(&data->log_write_idx, 1,
-                                                  memory_order_relaxed);
-        struct log_record *r = &data->log_ring[widx & (LOG_RING_SIZE - 1)];
-        r->rd_timestamp_ns = rd_now_ns;
-        r->rd_avail   = (avail_snapshot > 0) ? (uint32_t)avail_snapshot : 0u;
-        r->rd_size    = size;
-        r->rd_maxsize = maxsize_snapshot;
-    }
-
     pw_stream_queue_buffer(data->stream, b);
 }
 
@@ -567,7 +462,7 @@ static void on_stream_state_changed(void *userdata, enum pw_stream_state old, en
     }
 
     if (state == PW_STREAM_STATE_STREAMING) {
-        fprintf(stdout, "Marked the state as pipewire streaming ....\n");
+        fprintf(stdout, "Marked the state as pipewire streaming ....\n")
         atomic_store(&data->pw_streaming, true);
     }
 }
@@ -679,45 +574,6 @@ int main(int argc, char *argv[])
         settings.threshold = settings.fifoSize / THRESHOLD_DIVISOR;
     }
 
-    /* Match audiocapturemgr's defaults on this HAL: threshold = 8192 B and
-     * fifoSize = 65536 B (see audio_capture_manager.cpp DEFAULT_THRESHOLD /
-     * DEFAULT_FIFO_SIZE). This is also what the Amlogic HAL uses for its
-     * own CAP_DEFAULT_THRESHOLD / CAP_DEFAULT_SIZE, so it's the config the
-     * kernel `mix_cap` producer was tuned against. At 48 kHz S16 stereo the
-     * HAL polls every ~43 ms with a ~21 ms underflow bar, and the ring holds
-     * ~340 ms — enough headroom to absorb the bursty kernel producer without
-     * spamming underflow logs on every poll.
-     *
-     * Btmgr's USE_ACM path re-configures the daemon to fifoSize=8*chunk and
-     * threshold=chunk (typically 32768/4096) at BT-session start, but the
-     * HAL was already running with these ACM defaults from boot. Sticking to
-     * them here keeps us on the config the HAL was designed against and
-     * avoids the log-spam feedback loop that a smaller threshold produces.
-     *
-     * Both are overridable via env vars for on-device experimentation without
-     * recompiling — same pattern as RMFAUDIOCAP_SOC_DELAY_OVERRIDE and
-     * RMFAUDIOCAP_PIPEWIRE_LATENCY_OVERRIDE. If the override is 0/invalid the
-     * ACM default is kept. */
-    {
-        const char *thr_env  = getenv("RMFAUDIOCAP_THRESHOLD_OVERRIDE");
-        const char *fifo_env = getenv("RMFAUDIOCAP_FIFO_SIZE_OVERRIDE");
-        size_t thr_env_val  = thr_env  ? (size_t)atoi(thr_env)  : 0;
-        size_t fifo_env_val = fifo_env ? (size_t)atoi(fifo_env) : 0;
-
-        if (thr_env_val == 0)
-            thr_env_val = 8192;                    /* ACM/HAL default */
-        if (fifo_env_val == 0)
-            fifo_env_val = thr_env_val * 8;        /* 65536 — ACM DEFAULT_FIFO_SIZE */
-
-        settings.threshold = thr_env_val;
-        settings.fifoSize  = fifo_env_val;
-        fprintf(stdout,
-                "Applying ACM-default sizing: fifoSize=%zu, threshold=%zu%s%s\n",
-                (size_t)settings.fifoSize, (size_t)settings.threshold,
-                thr_env  ? " (threshold from env)" : "",
-                fifo_env ? " (fifoSize from env)"  : "");
-    }
-    
     data.format = settings.format;
     data.sampling_freq = settings.samplingFreq;
     data.rate = rac_freq_to_rate(settings.samplingFreq);
@@ -840,7 +696,7 @@ int main(int argc, char *argv[])
             }
         }
     }
-    sleep(10);
+
     /* Start RMF Audio Capture */
     err = RMF_AudioCapture_Start(data.capture_handle, &settings);
     if (err != RMF_SUCCESS) {
@@ -924,3 +780,4 @@ cleanup:
     
     return ret;
 }
+/*
