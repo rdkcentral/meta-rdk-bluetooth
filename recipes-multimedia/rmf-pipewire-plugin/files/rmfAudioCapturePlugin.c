@@ -462,7 +462,7 @@ static void on_stream_state_changed(void *userdata, enum pw_stream_state old, en
     }
 
     if (state == PW_STREAM_STATE_STREAMING) {
-        fprintf(stdout, "Marked the state as pipewire streaming ....\n")
+        fprintf(stdout, "Marked the state as pipewire streaming ....\n");
         atomic_store(&data->pw_streaming, true);
     }
 }
