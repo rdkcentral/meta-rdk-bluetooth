@@ -14,6 +14,7 @@ RDEPENDS:${PN} = "pipewire wireplumber ${MEDIA_UTILS_DEP}"
 
 SRC_URI = "file://rmfAudioCapturePlugin.c \
            file://CMakeLists.txt \
+           file://rmfAudioCapture.h \
            file://rmf-audio-on-bluez.lua \
            file://51-rmf-audio-bluez.conf \
            file://rmf-audio-capture-pipewire.service \

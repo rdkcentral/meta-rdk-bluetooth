@@ -36,7 +36,9 @@ do_install () {
 
 }
 
-FILES:${PN} = " ${bindir}/* ${libdir}/* "
-
+FILES:${PN} = " \
+     ${bindir}/bluetoothsdk/* \
+     ${libdir}/bluetoothsdk/* \
+ "
 
 PATH:prepend = "${STAGING_BINDIR_NATIVE}/:"

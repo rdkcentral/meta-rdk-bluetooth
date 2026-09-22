@@ -47,6 +47,21 @@ local function systemctl(verb)
   return false
 end
 
+local function is_rmf_active()
+  local cmd = string.format("systemctl is-active --quiet %s", RMF_UNIT)
+  local ok, r1, r2, r3 = pcall(os.execute, cmd)
+  if not ok then
+    log:warning(string.format("is-active check failed: %s", tostring(r1)))
+    return false
+  end
+
+  if type(r1) == "number" then
+    return r1 == 0
+  end
+
+  return r1 == true
+end
+
 local function start_rmf_audio_source()
   if rmf_active then
     log:info("RMF audio source already requested")
@@ -54,7 +69,11 @@ local function start_rmf_audio_source()
   end
   log:info("Starting RMF audio capture source")
   if systemctl("start") then
-    rmf_active = true
+    if is_rmf_active() then
+      rmf_active = true
+    else
+      log:warning("RMF audio source start was queued but unit is not active yet")
+    end
   end
 end
 
@@ -114,4 +133,5 @@ end)
 
 om:activate()
 log:info("RMF Audio Bluez monitor loaded - ObjectManager activated")
+
 

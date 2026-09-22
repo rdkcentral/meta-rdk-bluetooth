@@ -13,8 +13,7 @@ index e7e3751b..448e8b1e 100644
 +Environment=WIREPLUMBER_DEBUG=4
  Environment=GIO_USE_VFS=local
 +Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket
-+StandardOutput=file:/tmp/wireplumber.log
-+StandardError=file:/tmp/wireplumber.log
  
  [Install]
  WantedBy=pipewire.service
+
