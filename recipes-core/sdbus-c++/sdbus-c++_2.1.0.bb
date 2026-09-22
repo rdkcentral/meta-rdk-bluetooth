@@ -27,7 +27,7 @@ EXTRA_OECMAKE = "-DBUILD_CODE_GEN=ON \
 
 S = "${WORKDIR}/git"
 
-FILES_${PN}:remove = "${sysconfdir}"
-FILES_${PN}-ptest += "${sysconfdir}/dbus-1/system.d/"
-FILES_${PN}-ptest += "${libdir}/${BPN}/tests"
-FILES_${PN}-dev += "${bindir}/sdbus-c++-xml2cpp"
+ FILES:${PN}:remove = "${sysconfdir}"
+ FILES:${PN}-ptest += "${sysconfdir}/dbus-1/system.d/"
+ FILES:${PN}-ptest += "${libdir}/${BPN}/tests"
+ FILES:${PN}-dev += "${bindir}/sdbus-c++-xml2cpp"

@@ -243,9 +243,11 @@ static rmf_Error buffer_ready_callback(void *cbBufferReadyParm, void *AudioCaptu
         const uint8_t *p = (const uint8_t *)AudioCaptureBuffer;
         uint32_t mid  = AudioCaptureBufferSize / 2;
         uint32_t last = AudioCaptureBufferSize - 4;
-        if ((*(const uint32_t *)&p[0])   == 0 &&
-            (*(const uint32_t *)&p[mid]) == 0 &&
-            (*(const uint32_t *)&p[last])== 0) {
+        uint32_t v0, vm, vl;
+        memcpy(&v0, p, 4);
+        memcpy(&vm, p + mid, 4);
+        memcpy(&vl, p + last, 4);
+        if (v0 == 0 && vm == 0 && vl == 0) {
             atomic_fetch_add_explicit(&data->silence_bytes,  AudioCaptureBufferSize, memory_order_relaxed);
             atomic_fetch_add_explicit(&data->silence_chunks, 1, memory_order_relaxed);
         }

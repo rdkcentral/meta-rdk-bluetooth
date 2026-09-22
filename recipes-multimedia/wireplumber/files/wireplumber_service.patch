@@ -2,11 +2,11 @@ diff --git a/src/systemd/system/wireplumber.service.in b/src/systemd/system/wire
 index e7e3751b..448e8b1e 100644
 --- a/src/systemd/system/wireplumber.service.in
 +++ b/src/systemd/system/wireplumber.service.in
-@@ -14,9 +14,11 @@ Type=simple
+@@ -14,9 +14,12 @@ Type=simple
  AmbientCapabilities=CAP_SYS_NICE
  ExecStart=@WP_BINARY@
  Restart=on-failure
--User=pipewire
+ User=pipewire
 -Environment=PIPEWIRE_RUNTIME_DIR=%t/pipewire
 +Environment=PIPEWIRE_RUNTIME_DIR=/tmp/pipewire
 +Environment=PIPEWIRE_DEBUG=D
@@ -16,4 +16,5 @@ index e7e3751b..448e8b1e 100644
  
  [Install]
  WantedBy=pipewire.service
+
 

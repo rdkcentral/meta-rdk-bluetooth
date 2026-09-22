@@ -8,7 +8,7 @@ LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=17d1fe479cdec331eecbc65d26bc7e77"
 
 DEPENDS = "glib-2.0 glib-2.0-native lua pipewire \
-    ${@bb.utils.contains("DISTRO_FEATURES", "gobject-introspection-data", "python3-native python3-lxml-native doxygen-native", "", d)} \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'gobject-introspection-data', 'python3-native python3-lxml-native doxygen-native', '', d)} \
 "
 
 SRCREV = "84429b47943d789389fbde17c06b82efb197d04e"
