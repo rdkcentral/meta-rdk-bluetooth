@@ -2,7 +2,7 @@ diff --git a/src/systemd/system/wireplumber.service.in b/src/systemd/system/wire
 index e7e3751b..448e8b1e 100644
 --- a/src/systemd/system/wireplumber.service.in
 +++ b/src/systemd/system/wireplumber.service.in
-@@ -14,9 +14,13 @@ Type=simple
+@@ -14,9 +14,11 @@ Type=simple
  AmbientCapabilities=CAP_SYS_NICE
  ExecStart=@WP_BINARY@
  Restart=on-failure
