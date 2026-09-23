@@ -34,9 +34,13 @@ do_install () {
     install -m 0755 ${S}/include/bluetooth/*.h ${D}${includedir}/bluetoothsdk/bluetooth/
     install -m 0755 ${S}/include/bluetooth/sdbus/*.h ${D}${includedir}/bluetoothsdk/bluetooth/sdbus/
 
+    install -d ${D}${sysconfdir}/ld.so.conf.d
+    install -m 0644 /dev/null ${D}${sysconfdir}/ld.so.conf.d/bluetoothsdk.conf
+    echo "${libdir}/bluetoothsdk" > ${D}${sysconfdir}/ld.so.conf.d/bluetoothsdk.conf
 }
 
 FILES:${PN} = " ${bindir}/* ${libdir}/* "
+FILES:${PN} += " ${sysconfdir}/ld.so.conf.d/bluetoothsdk.conf "
 
 
 PATH:prepend = "${STAGING_BINDIR_NATIVE}/:"
