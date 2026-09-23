@@ -40,7 +40,8 @@ do_install () {
     echo "${libdir}/bluetoothsdk" > ${D}${sysconfdir}/ld.so.conf.d/bluetoothsdk.conf
 }
 
-FILES:${PN} = " ${bindir}/* ${libdir}/* ${sysconfdir}/ld.so.conf.d/bluetoothsdk.conf "
+FILES:${PN} = " ${bindir}/* ${libdir}/* "
+FILES:${PN} += " ${sysconfdir}/ld.so.conf.d/bluetoothsdk.conf "
 
 
 PATH:prepend = "${STAGING_BINDIR_NATIVE}/:"
