@@ -34,9 +34,13 @@ do_install () {
     install -m 0755 ${S}/include/bluetooth/*.h ${D}${includedir}/bluetoothsdk/bluetooth/
     install -m 0755 ${S}/include/bluetooth/sdbus/*.h ${D}${includedir}/bluetoothsdk/bluetooth/sdbus/
 
+    # librdk_bluetooth.so.1 lives in a non-standard libdir; without this the
+    # dynamic linker can't resolve consumers' DT_NEEDED entry for it.
+    install -d ${D}${sysconfdir}/ld.so.conf.d
+    echo "${libdir}/bluetoothsdk" > ${D}${sysconfdir}/ld.so.conf.d/bluetoothsdk.conf
 }
 
-FILES:${PN} = " ${bindir}/* ${libdir}/* "
+FILES:${PN} = " ${bindir}/* ${libdir}/* ${sysconfdir}/ld.so.conf.d/bluetoothsdk.conf "
 
 
 PATH:prepend = "${STAGING_BINDIR_NATIVE}/:"
