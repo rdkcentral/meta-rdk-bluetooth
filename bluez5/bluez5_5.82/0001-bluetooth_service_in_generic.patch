@@ -4,6 +4,7 @@ Subject: [PATCH] DELIA-24590 RDK-27733: Removing do_postpatch from Bluetooth Rec
         add patch file for modifying bluetooth.service.
 Source: COMCAST
 Signed-off-by: mselva006c <mani_selvaraj@comcast.com>
+Upstream-Status: Pending
 ---
  src/bluetooth.service.in | 4 +++-
  1 file changed, 3 insertions(+), 1 deletion(-)
