@@ -1,3 +1,5 @@
+Upstream-Status: Pending
+
 Index: bluez-5.82/profiles/input/device.c
 ===================================================================
 --- bluez-5.82.orig/profiles/input/device.c
