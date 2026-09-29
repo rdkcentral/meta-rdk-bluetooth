@@ -22,7 +22,7 @@ SRC_URI = "git://gitlab.freedesktop.org/pipewire/wireplumber.git;branch=master;p
 
 S = "${WORKDIR}/git"
 
-inherit meson pkgconfig gobject-introspection systemd
+inherit meson pkgconfig gobject-introspection systemd logrotate_config
 
 GIR_MESON_ENABLE_FLAG = 'enabled'
 GIR_MESON_DISABLE_FLAG = 'disabled'
@@ -161,4 +161,13 @@ SYSLOG-NG_FILTER_client += "wireplumber"
 SYSLOG-NG_SERVICE_wireplumber_client += "wireplumber.service"
 SYSLOG-NG_DESTINATION_wireplumber_client = "wireplumber.log"
 SYSLOG-NG_LOGRATE_wireplumber_client = "medium"
+
+LOGROTATE_NAME = "wireplumber"
+LOGROTATE_LOGNAME_wireplumber = "wireplumber.log"
+#HDD_DISABLE
+LOGROTATE_SIZE_MEM_wireplumber = "250000"
+LOGROTATE_ROTATION_MEM_wireplumber = "2"
+#HDD_ENABLE
+LOGROTATE_SIZE_wireplumber = "512000"
+LOGROTATE_ROTATION_wireplumber = "5"
 
