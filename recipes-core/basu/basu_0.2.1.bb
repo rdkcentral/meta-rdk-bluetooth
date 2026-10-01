@@ -18,4 +18,6 @@ PACKAGECONFIG ?= ""
 PACKAGECONFIG[libcap] = "-Dlibcap=enabled,-Dlibcap=disabled,libcap"
 PACKAGECONFIG[audit] = "-Daudit=enabled,-Daudit=disabled,audit"
 
-EXTRA_OEMESON += "--buildtype release"
+# Static-only: basu's sd_bus_* symbols must not reach the global dynamic namespace,
+# where they would collide with the platform libsystemd's (systemd 230) exports.
+EXTRA_OEMESON += "--buildtype release -Ddefault_library=static -Db_staticpic=true"
