@@ -10,11 +10,15 @@ inherit cmake pkgconfig systemd ptest
 
 PACKAGECONFIG ??= "with-external-libsystemd \
                    ${@bb.utils.contains('PTEST_ENABLED', '1', 'with-tests', '', d)}"
+# Pin SDBUSCPP_SDBUS_LIB: left unset, upstream CMake probes systemd/elogind/basu and
+# silently links the first pkg-config hit, which can load two independent sd-bus
+# implementations into one process (sd_bus origin_id mismatch -> -ECHILD at runtime).
 PACKAGECONFIG[with-builtin-libsystemd] = ",,sdbus-c++-libsystemd,libcap"
-PACKAGECONFIG[with-external-libsystemd] = ",,systemd,libsystemd"
+PACKAGECONFIG[with-external-libsystemd] = "-DSDBUSCPP_SDBUS_LIB=systemd,,systemd,libsystemd"
+PACKAGECONFIG[with-basu] = "-DSDBUSCPP_SDBUS_LIB=basu,,basu,basu"
 PACKAGECONFIG[with-tests] = "-DBUILD_TESTS=ON -DTESTS_INSTALL_PATH=${libdir}/${BPN}/tests,-DBUILD_TESTS=OFF"
 
-DEPENDS += "expat basu"
+DEPENDS += "expat"
 
 SRCREV = "0261d0ec60b68c1f0a6ec9acf63d1379f7d569f8"
 SRC_URI = "git://github.com/Kistler-Group/sdbus-cpp.git;protocol=https;branch=master"
