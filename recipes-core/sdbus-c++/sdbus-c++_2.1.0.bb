@@ -22,11 +22,12 @@ SRC_URI += "file://run-ptest"
 
 # --exclude-libs ALL: keep the statically linked basu sd_bus_* symbols local to
 # libsdbus-c++.so so they can neither interpose nor be interposed by libsystemd.
+LDFLAGS:append = " -Wl,--exclude-libs,ALL"
+
 EXTRA_OECMAKE = "-DBUILD_CODE_GEN=ON \
                  -DBUILD_DOC=ON \
                  -DBUILD_DOXYGEN_DOC=OFF \
-                 -DSDBUSCPP_BUILD_LIBSYSTEMD=OFF \
-                 -DCMAKE_SHARED_LINKER_FLAGS=-Wl,--exclude-libs,ALL"
+                 -DSDBUSCPP_BUILD_LIBSYSTEMD=OFF"
 
 S = "${WORKDIR}/git"
 
