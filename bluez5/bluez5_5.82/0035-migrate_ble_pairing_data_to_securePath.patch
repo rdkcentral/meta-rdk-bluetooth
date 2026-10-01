@@ -1,0 +1,21 @@
+##################################################################
+Date: Mon Sep 28 06:51:00 2026 +0000
+From:
+Subject: [PATCH] bluetooth: use secure setup script
+Source: SKY
+Upstream-Status: Pending
+Signed-off-by: THARUN KUMAR VENKATACHALEM <tvenka679_comcast>
+##################################################################
+
+--- a/src/bluetooth.service.in	2026-09-28 06:51:00.579873451 +0000
++++ b/src/bluetooth.service.in	2026-09-28 06:52:49.000628087 +0000
+@@ -9,8 +9,7 @@
+ Type=dbus
+ BusName=org.bluez
+ 
+-ExecStartPre=/bin/mkdir -p /var/lib/bluetooth
+-ExecStartPre=/bin/mkdir -p /opt/lib/bluetooth
++ExecStartPre=/bin/sh -c '/etc/bluetooth/bt_secure_path_setup.sh' 
+ 
+ ExecStart=/usr/lib/bluez5/bluetooth/bluetoothd -d
+ NotifyAccess=main
