@@ -20,8 +20,6 @@ SRCREV = "0261d0ec60b68c1f0a6ec9acf63d1379f7d569f8"
 SRC_URI = "git://github.com/Kistler-Group/sdbus-cpp.git;protocol=https;branch=master"
 SRC_URI += "file://run-ptest"
 
-# --exclude-libs ALL: keep the statically linked basu sd_bus_* symbols local to
-# libsdbus-c++.so so they can neither interpose nor be interposed by libsystemd.
 LDFLAGS:append = " -Wl,--exclude-libs,ALL"
 
 EXTRA_OECMAKE = "-DBUILD_CODE_GEN=ON \
