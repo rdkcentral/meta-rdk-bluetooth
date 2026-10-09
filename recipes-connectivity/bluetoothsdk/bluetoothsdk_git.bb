@@ -1,0 +1,46 @@
+SUMMARY = "Bluetooth SDK"
+LICENSE = "Apache-2.0"
+LIC_FILES_CHKSUM = "file://LICENSE;md5=175792518e4ac015ab6696d16c4f607e"
+
+PROVIDES += "virtual/vendor-bluetooth-sdk"
+RPROVIDES:${PN} = "virtual/vendor-bluetooth-sdk"
+
+DEPENDS = "cmake-native breakpad breakpad-wrapper bluez5 glib-2.0 sdbus-c++ pipewire wireplumber"
+RDEPENDS:${PN} = "bluez5 sdbus-c++ pipewire wireplumber"
+SRC_URI = "git://github.com/rdkcentral/bluetooth-sdk.git;protocol=https;branch=develop"
+SRCREV = "0016f819a2a515d0180f6a2bd83c317ce2973f13"
+S = "${WORKDIR}/git"
+
+CFLAGS:append = " -I${STAGING_INCDIR} "
+# LDFLAGS_append = " -lsdbus-c++  "
+
+
+EXTRA_OECMAKE_BUILD = ""
+EXTRA_OECMAKE += "-DWITH_CLI=ON -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON -DCMAKE_INSTALL_RPATH=\$ORIGIN/../../lib/bluetoothsdk -DAUDIO_SUPPORT=ON"
+
+inherit cmake externalsrc breakpad-wrapper pkgconfig
+
+do_install () {
+    install -d ${D}${bindir}/bluetoothsdk
+    install -d ${D}${libdir}/bluetoothsdk
+    install -d ${D}${includedir}/bluetoothsdk/bluetooth/sdbus
+
+    # Keep the existing library path and add the SONAME name required at runtime
+    install -m 0755 ${B}/src/librdk_bluetooth.so ${D}${libdir}/bluetoothsdk/librdk_bluetooth.so
+    ln -sf librdk_bluetooth.so ${D}${libdir}/bluetoothsdk/librdk_bluetooth.so.1
+
+    install -m 0755 ${B}/client/btSdkCli ${D}${bindir}/bluetoothsdk/btSdkCli
+    install -m 0755 ${S}/include/*.h ${D}${includedir}/bluetoothsdk/
+    install -m 0755 ${S}/include/bluetooth/*.h ${D}${includedir}/bluetoothsdk/bluetooth/
+    install -m 0755 ${S}/include/bluetooth/sdbus/*.h ${D}${includedir}/bluetoothsdk/bluetooth/sdbus/
+
+    install -d ${D}${sysconfdir}/ld.so.conf.d
+    install -m 0644 /dev/null ${D}${sysconfdir}/ld.so.conf.d/bluetoothsdk.conf
+    echo "${libdir}/bluetoothsdk" > ${D}${sysconfdir}/ld.so.conf.d/bluetoothsdk.conf
+}
+
+FILES:${PN} = " ${bindir}/* ${libdir}/* "
+FILES:${PN} += " ${sysconfdir}/ld.so.conf.d/bluetoothsdk.conf "
+
+
+PATH:prepend = "${STAGING_BINDIR_NATIVE}/:"
