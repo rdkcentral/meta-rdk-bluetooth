@@ -29,7 +29,7 @@ RPROVIDES:${PN} += "${PN}-systemd"
 RREPLACES:${PN} += "${PN}-systemd"
 RCONFLICTS:${PN} += "${PN}-systemd"
 
-CFLAGS:append = " -DBT_UNSUPPORTED_GAMEPAD_ENABLED"
+CFLAGS:append = "${@bb.utils.contains('DISTRO_FEATURES', 'disable_unsupported_gamepad', '', ' -DBT_UNSUPPORTED_GAMEPAD_ENABLED', d)}"
 
 do_install:append() {
     mkdir -p ${D}${includedir}/bluetooth/audio/
