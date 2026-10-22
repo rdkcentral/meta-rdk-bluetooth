@@ -27,6 +27,7 @@ SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://0032-breakpad.patch \
     file://0034-DELIA-69976-bluez-log-flood.patch \
     file://0035-migrate_ble_pairing_data_to_securePath.patch \
+    file://0036-btmgmt-shell-noninteractive-stdin-fix.patch \
     file://bt_secure_path_setup.sh \
     "
 
