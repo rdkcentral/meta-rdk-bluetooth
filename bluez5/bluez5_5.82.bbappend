@@ -26,9 +26,7 @@ SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://0031-prevent-scan-stuck-and-stop-scan-when-adapter-busy.patch \
     file://0032-breakpad.patch \
     file://0034-DELIA-69976-bluez-log-flood.patch \
-    file://0035-migrate_ble_pairing_data_to_securePath.patch \
     file://0036-btmgmt-shell-noninteractive-stdin-fix.patch \
-    file://bt_secure_path_setup.sh \
     "
 
 # Removed testtools package as it has a depedncy with python
@@ -40,6 +38,4 @@ do_install:append() {
     if ${@bb.utils.contains('DISTRO_FEATURES', 'blueztest', 'false', 'true', d)}; then
         rm -rf ${D}${libdir}/bluez
     fi
-
-    install -m 0755 ${WORKDIR}/bt_secure_path_setup.sh ${D}${sysconfdir}/bluetooth/
 }
