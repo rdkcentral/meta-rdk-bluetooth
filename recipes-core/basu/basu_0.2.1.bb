@@ -18,4 +18,4 @@ PACKAGECONFIG ?= ""
 PACKAGECONFIG[libcap] = "-Dlibcap=enabled,-Dlibcap=disabled,libcap"
 PACKAGECONFIG[audit] = "-Daudit=enabled,-Daudit=disabled,audit"
 
-EXTRA_OEMESON += "--buildtype release"
+EXTRA_OEMESON += "--buildtype release -Ddefault_library=static -Db_staticpic=true"
