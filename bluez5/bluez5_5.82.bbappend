@@ -26,6 +26,7 @@ SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://0031-prevent-scan-stuck-and-stop-scan-when-adapter-busy.patch \
     file://0032-breakpad.patch \
     file://0034-DELIA-69976-bluez-log-flood.patch \
+    file://0036-btmgmt-shell-noninteractive-stdin-fix.patch \
     "
 
 # Removed testtools package as it has a depedncy with python
