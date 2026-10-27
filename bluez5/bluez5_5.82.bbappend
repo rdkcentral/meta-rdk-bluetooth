@@ -9,6 +9,8 @@ SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://0005-enable-auto-connect.patch \
     file://0006-Fix-input-hog-connection-with-slow-pairing-devices.patch \
     file://0007-create_storage_directory_before_starting_service.patch \
+    file://0007-migrate_ble_pairing_data_to_originalPath.patch \
+    file://bt_original_path_setup.sh \
     file://0008-bluez-crash-fixes.patch \
     file://0009-delete-autoconnect-on-remove.patch \
     file://0010-ensure-bluez-connects-on-bredr-to-audio-devices.patch \
@@ -26,6 +28,8 @@ SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://0031-prevent-scan-stuck-and-stop-scan-when-adapter-busy.patch \
     file://0032-breakpad.patch \
     file://0034-DELIA-69976-bluez-log-flood.patch \
+    file://0034-migrate_ble_pairing_data_to_securePath.patch \
+    file://bt_secure_path_setup.sh \
     "
 
 # Removed testtools package as it has a depedncy with python

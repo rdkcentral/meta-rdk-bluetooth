@@ -1,0 +1,23 @@
+##################################################################
+Date: Tue Feb 18 17:12:03 2020 +0000
+From:
+Subject: [PATCH] Migrate BLE pairing data to original path (VENDOR part)
+Source: SKY
+Upstream-Status: Pending
+Signed-off-by: Tijo Thomas John <tijo.thomas@sky.uk>
+##################################################################
+
+--- a/src/bluetooth.service.in
++++ b/src/bluetooth.service.in
+@@ -12,6 +12,11 @@
+ ExecStartPre=/bin/mkdir -p /var/lib/bluetooth
+ ExecStartPre=/bin/mkdir -p /opt/lib/bluetooth
+ 
++ExecStartPre=/bin/sh -c 'if [ -d /opt/secure/lib/bluetooth ]; then \
++    cp -r /opt/secure/lib/bluetooth /opt/lib/ && \
++    rm -r /opt/secure/lib/bluetooth; \
++fi'
++
+ ExecStart=/usr/lib/bluez5/bluetooth/bluetoothd -d
+ NotifyAccess=main
+ #WatchdogSec=10
