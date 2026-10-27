@@ -1,0 +1,69 @@
+###################################################################################
+Date: Thu, 22 Oct 2026 17:55:01 +0530
+
+Subject: [PATCH] shared/shell: Run non-interactive command if stdin cannot be polled
+
+When btmgmt/bluetoothctl are started with a command and stdin is
+/dev/null or closed (e.g. popen() from a daemon started by systemd),
+epoll refuses the fd (EPERM/EINVAL) so bt_shell_attach() returns early
+and the command is never executed. The process then blocks forever in
+the mainloop.
+
+Non-interactive mode never reads stdin, so in that mode ignore the
+failure and run the command anyway. bt_shell_printf() also returns
+early when no input is attached, which would silently drop the command
+output (e.g. "Adding device with ..."), so mark this case with a
+no_input flag and keep printing. Interactive mode is unchanged.
+
+Source: Comcast
+Upstream-Status: Pending
+Signed-off-by: Ananth Marimuthu <ananth_marimuthu2@comcast.com>
+####################################################################################
+
+index b778421..1a2df72 100644
+--- a/src/shared/shell.c
++++ b/src/shared/shell.c
+@@ -77,6 +77,7 @@ static struct {
+ 	int timeout;
+ 	int init_fd;
+ 	struct queue *inputs;
++	bool no_input;
+ 
+ 	char *line;
+ 	struct queue *queue;
+@@ -705,7 +706,7 @@ void bt_shell_printf(const char *fmt, ...)
+ 	char *saved_line;
+ 	int saved_point;
+ 
+-	if (queue_isempty(data.inputs))
++	if (queue_isempty(data.inputs) && !data.no_input)
+ 		return;
+ 
+ 	if (data.mode) {
+@@ -1521,6 +1522,7 @@ void bt_shell_cleanup(void)
+ 
+ 	queue_destroy(data.inputs, input_destroy);
+ 	data.inputs = NULL;
++	data.no_input = false;
+ 	queue_destroy(data.queue, free);
+ 	data.queue = NULL;
+ 	queue_destroy(data.prompts, prompt_free);
+@@ -1611,8 +1613,16 @@ bool bt_shell_attach(int fd)
+ 	struct input *input;
+ 
+ 	input = input_new(fd);
+-	if (!input)
+-		return false;
++	if (!input) {
++		/* Non-interactive mode doesn't read from fd, so an fd that
++		 * can't be polled (e.g. /dev/null or closed stdin) must not
++		 * prevent the command from running.
++		 */
++		if (!data.mode)
++			return false;
++
++		data.no_input = true;
++	}
+ 
+ 	if (!data.mode) {
+ 		io_set_read_handler(input->io, input_read, input, NULL);
