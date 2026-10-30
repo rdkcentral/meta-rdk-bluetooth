@@ -40,5 +40,5 @@ do_install:append() {
         rm -rf ${D}${libdir}/bluez
     fi
 
-    install -m 0755 ${WORKDIR}/bt_secure_path_setup.sh ${D}${sysconfdir}/bluetooth/
+    install -m 0755 ${UNPACKDIR}/bt_secure_path_setup.sh ${D}${sysconfdir}/bluetooth/
 }

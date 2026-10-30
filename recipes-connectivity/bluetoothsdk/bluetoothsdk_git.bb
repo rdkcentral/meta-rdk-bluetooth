@@ -2,14 +2,14 @@ SUMMARY = "Bluetooth SDK"
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=175792518e4ac015ab6696d16c4f607e"
 
-PROVIDES += "virtual/vendor-bluetooth-sdk"
-RPROVIDES:${PN} = "virtual/vendor-bluetooth-sdk"
+VIRTUAL-RUNTIME_vendor-bluetooth-sdk = "${PN}"
+RDEPENDS:${PN} += "${VIRTUAL-RUNTIME_vendor-bluetooth-sdk}"
 
 DEPENDS = "cmake-native breakpad breakpad-wrapper bluez5 glib-2.0 sdbus-c++ pipewire wireplumber"
 RDEPENDS:${PN} = "bluez5 sdbus-c++ pipewire wireplumber"
 SRC_URI = "git://github.com/rdkcentral/bluetooth-sdk.git;protocol=https;branch=develop"
 SRCREV = "0016f819a2a515d0180f6a2bd83c317ce2973f13"
-S = "${WORKDIR}/git"
+S:kirkstone = "${WORKDIR}/git"
 
 CFLAGS:append = " -I${STAGING_INCDIR} "
 # LDFLAGS_append = " -lsdbus-c++  "

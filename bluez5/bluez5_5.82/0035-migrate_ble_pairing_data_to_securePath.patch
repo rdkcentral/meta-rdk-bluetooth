@@ -15,7 +15,7 @@ Signed-off-by: THARUN KUMAR VENKATACHALEM <tvenka679_comcast>
  
 -ExecStartPre=/bin/mkdir -p /var/lib/bluetooth
 -ExecStartPre=/bin/mkdir -p /opt/lib/bluetooth
-+ExecStartPre=/bin/sh -c '/etc/bluetooth/bt_secure_path_setup.sh'
++ExecStartPre=/bin/sh -c '/etc/bluetooth/bt_secure_path_setup.sh' 
  
  ExecStart=/usr/lib/bluez5/bluetooth/bluetoothd -d
  NotifyAccess=main
