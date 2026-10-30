@@ -7,7 +7,7 @@ If the unit crashes duting boot the bluez info files are corrupted
 as the are updated.  A glib temporary file is saved though and
 this is used to restore the current setup.
 
-Upstream-Status: N/A
+Upstream-Status: Inappropriate
 Source: SKY
 Signed-off-by: James Dowdells <james.dowdells@sky.uk>
 #########################################################################

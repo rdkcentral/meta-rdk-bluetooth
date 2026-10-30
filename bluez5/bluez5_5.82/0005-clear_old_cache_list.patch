@@ -3,6 +3,8 @@ From: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
 Source: COMCAST
 Subject: BT Cache Cause Discovery Failure
 Signed-off-by: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
+Upstream-Status: Pending
+
 Index: bluez-5.54/src/device.c
 ===================================================================
 --- bluez-5.54.orig/src/device.c

@@ -1,6 +1,7 @@
 #!/bin/sh
 
 /bin/mkdir -p /var/lib/bluetooth
+
 /bin/mkdir -p /opt/secure/lib/bluetooth
 
 if [ -d /opt/lib/bluetooth ]; then

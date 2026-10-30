@@ -6,11 +6,11 @@ SECTION = "multimedia"
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/Apache-2.0;md5=89aea4e17d99a7cacdbeed46a0096b10"
 
-MEDIA_UTILS_DEP = "virtual/vendor-media-utils"
+VIRTUAL-RUNTIME_vendor-media-utils = "${PN}"
 MEDIA_UTILS_DEP:use_generic_media_utils = "virtual/media-utils"
 
 DEPENDS = "pipewire ${MEDIA_UTILS_DEP} media-utils-headers"
-RDEPENDS:${PN} = "pipewire wireplumber ${MEDIA_UTILS_DEP}"
+RDEPENDS:${PN} = "pipewire wireplumber ${VIRTUAL-RUNTIME_vendor-media-utils}"
 
 SRC_URI = "file://rmfAudioCapturePlugin.c \
            file://CMakeLists.txt \
@@ -20,7 +20,7 @@ SRC_URI = "file://rmfAudioCapturePlugin.c \
            file://rmf-audio-capture-pipewire.service \
           "
 
-S = "${WORKDIR}"
+S:kirkstone = "${WORKDIR}"
 
 BT_AUDIO_DELAY_COMPENSATION_MS ?= "0"
 
@@ -36,7 +36,7 @@ do_install:append() {
 
     # Install systemd service
     install -d ${D}${systemd_system_unitdir}
-    install -m 0644 ${WORKDIR}/rmf-audio-capture-pipewire.service ${D}${systemd_system_unitdir}/rmf-audio-capture-pipewire.service
+    install -m 0644 ${UNPACKDIR}/rmf-audio-capture-pipewire.service ${D}${systemd_system_unitdir}/rmf-audio-capture-pipewire.service
 
     # Inject delay compensation if vendor distro feature is set
     if ${@bb.utils.contains('DISTRO_FEATURES', 'bt-audio-delay-compensation', 'true', 'false', d)}; then
@@ -46,11 +46,11 @@ do_install:append() {
 
     # Install WirePlumber Lua script
     install -d ${D}${datadir}/wireplumber/scripts
-    install -m 0644 ${WORKDIR}/rmf-audio-on-bluez.lua ${D}${datadir}/wireplumber/scripts/51-rmf-audio-on-bluez.lua
+    install -m 0644 ${UNPACKDIR}/rmf-audio-on-bluez.lua ${D}${datadir}/wireplumber/scripts/51-rmf-audio-on-bluez.lua
 
     # Install WirePlumber configuration
     install -d ${D}${sysconfdir}/wireplumber/wireplumber.conf.d
-    install -m 0644 ${WORKDIR}/51-rmf-audio-bluez.conf ${D}${sysconfdir}/wireplumber/wireplumber.conf.d/51-rmf-audio-bluez.conf
+    install -m 0644 ${UNPACKDIR}/51-rmf-audio-bluez.conf ${D}${sysconfdir}/wireplumber/wireplumber.conf.d/51-rmf-audio-bluez.conf
 }
 
 FILES:${PN} = " \
