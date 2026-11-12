@@ -25,7 +25,7 @@ EXTRA_OECMAKE = "-DBUILD_CODE_GEN=ON \
                  -DBUILD_DOXYGEN_DOC=OFF \
                  -DSDBUSCPP_BUILD_LIBSYSTEMD=OFF"
 
-S = "${WORKDIR}/git"
+S = "${UNPACKDIR}/git"
 
 FILES:${PN}:remove = "${sysconfdir}"
 FILES:${PN}-ptest += "${sysconfdir}/dbus-1/system.d/"

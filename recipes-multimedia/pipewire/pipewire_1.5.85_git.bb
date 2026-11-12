@@ -21,7 +21,7 @@ SRC_URI = "git://gitlab.freedesktop.org/pipewire/pipewire.git;branch=master;prot
            "
 
 
-S = "${WORKDIR}/git"
+S = "${UNPACKDIR}/git"
 
 inherit meson pkgconfig systemd gettext useradd
 

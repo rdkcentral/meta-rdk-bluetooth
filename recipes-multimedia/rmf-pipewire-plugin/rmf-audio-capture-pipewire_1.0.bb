@@ -21,6 +21,7 @@ SRC_URI = "file://rmfAudioCapturePlugin.c \
           "
 
 S:kirkstone = "${WORKDIR}"
+S:wrynose = "${UNPACKDIR}"
 
 BT_AUDIO_DELAY_COMPENSATION_MS ?= "0"
 
@@ -74,4 +75,3 @@ pkg_postinst_ontarget:${PN}() {
         systemctl --user restart wireplumber.service || true
     fi
 }
-
