@@ -1,0 +1,24 @@
+From: Build Compatibility <build@example.invalid>
+Subject: [PATCH] tests: provide textfile test debug stub
+
+The textfile unit test links production source without the daemon logger. Provide
+the debug function as a no-op in the test binary.
+
+Upstream-Status: Pending
+
+---
+ unit/test-textfile.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/unit/test-textfile.c b/unit/test-textfile.c
+--- a/unit/test-textfile.c
++++ b/unit/test-textfile.c
+@@ -38,0 +39,8 @@
++#include "src/log.h"
++
++void btd_debug(uint16_t index, const char *format, ...)
++{
++	(void) index;
++	(void) format;
++}
++

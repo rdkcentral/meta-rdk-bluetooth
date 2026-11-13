@@ -1,6 +1,8 @@
 require bluez5_5.48.inc
 
 REQUIRED_DISTRO_FEATURES = "bluez5"
+PACKAGECONFIG[experimental] = "--enable-experimental,--disable-experimental"
+CFLAGS:append = " -DUSE_VARARGS -DPREFER_STDARG -Wno-error=implicit-function-declaration"
 
 SRC_URI[md5sum] = "c9c853f3c90564cabec75ab35106c355"
 SRC_URI[sha256sum] = "b9a8723072ef66bae7ec301c774902ebcb444c9c5b149b5a199e60a1ba970e90"
