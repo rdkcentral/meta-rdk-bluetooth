@@ -4,6 +4,6 @@
 /bin/mkdir -p /opt/lib/bluetooth
 
 if [ -d /opt/secure/lib/bluetooth ]; then
-    cp -r /opt/secure/lib/bluetooth /opt/lib/
+    cp -r /opt/secure/lib/bluetooth /opt/lib/ || exit $?
     rm -r /opt/secure/lib/bluetooth
 fi
