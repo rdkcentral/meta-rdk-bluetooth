@@ -51,7 +51,8 @@ SRC_URI = "\
     file://0001-tests-add-a-target-for-building-tests-without-runnin.patch \
 "
 
-S = "${UNPACKDIR}/bluez-${PV}"
+BLUEZ_UNPACK_DIR = "${@d.getVar('UNPACKDIR') or d.getVar('WORKDIR')}"
+S = "${BLUEZ_UNPACK_DIR}/bluez-${PV}"
 
 CVE_PRODUCT = "bluez"
 
@@ -76,7 +77,7 @@ NOINST_TOOLS = " \
 
 do_install:append() {
 	install -d ${D}${INIT_D_DIR}
-    install -m 0755 ${UNPACKDIR}/init ${D}${INIT_D_DIR}/bluetooth
+    install -m 0755 ${BLUEZ_UNPACK_DIR}/init ${D}${INIT_D_DIR}/bluetooth
 
 	install -d ${D}${sysconfdir}/bluetooth/
 	if [ -f ${S}/profiles/network/network.conf ]; then
