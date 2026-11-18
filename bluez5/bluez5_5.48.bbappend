@@ -1,5 +1,8 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}_${PV}:"
 
+# The 5.48 vendor patch stack predates Wrynose patch QA metadata and has legacy context fuzz.
+ERROR_QA:remove = "patch-status patch-fuzz"
+
 ## Generic BlueZ 5.48 patches (order preserved from original apply sequence)
 SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://breakpad.patch \
@@ -69,6 +72,7 @@ SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://bluez-5.48-070-RDK-59395-BT-SIG-PTS-certification-changes.patch \
     file://bluez-5.48-073-RDKOSS-1008-endpoint-crash.patch \
     file://bluez-5.48-074-LLAMA-18285-increase-gatt-notify-pipe-buffer.patch \
+    file://0001-test-textfile-provide-debug-stub.patch \
     "
 
 # Removed testtools package as it has a depedncy with python
