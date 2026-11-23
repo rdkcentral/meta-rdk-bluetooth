@@ -40,12 +40,13 @@ diff -Naur a/src/adapter.c b/src/adapter.c
 diff -Naur a/src/device.c b/src/device.c
 --- a/src/device.c	2021-03-02 12:48:39.778127297 +0000
 +++ b/src/device.c	2021-03-02 13:25:38.180163386 +0000
-@@ -36,6 +36,10 @@
+@@ -36,6 +36,11 @@
  #include <time.h>
  
  #include <glib.h>
 +#include <sys/types.h>
 +#include <sys/stat.h>
++#include <sys/sendfile.h>
 +#include <unistd.h>
 +
  #include <dbus/dbus.h>
