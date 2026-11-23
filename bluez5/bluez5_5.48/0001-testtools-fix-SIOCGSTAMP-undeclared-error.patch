@@ -13,7 +13,7 @@ Subject: [PATCH] testtools - fix: 'SIOCGSTAMP' undeclared error
 |                   ^~~~~~~~~~
 
 Source: RDK-Community
-Upstream-Status: pending
+Upstream-Status: Pending
 GitHub pull request: https://github.com/bluez/bluez/pull/50
 
 Signed-off-by: Moorthy Baskar <moorthy.bs@ltts.com>

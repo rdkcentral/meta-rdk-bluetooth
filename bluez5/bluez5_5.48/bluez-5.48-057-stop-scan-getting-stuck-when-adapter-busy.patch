@@ -7,11 +7,11 @@ License:
 Upstream-Status: Pending
 Signed-off-by: jack.ogorman@sky.uk
 #########################################################################
-diff --git a/src/adapter.c b/src/adapter.c
-index f97ee033b..398227ab2 100755
---- a/src/adapter.c
-+++ b/src/adapter.c
-@@ -1896,9 +1896,10 @@ static void stop_discovery_complete(uint8_t status, uint16_t length,
+Index: bluez-5.48/src/adapter.c
+===================================================================
+--- bluez-5.48.orig/src/adapter.c	2026-11-23 12:40:03.965256531 +0000
++++ bluez-5.48/src/adapter.c	2026-11-23 12:40:04.169257271 +0000
+@@ -1924,9 +1924,10 @@
  
  	if (status != MGMT_STATUS_SUCCESS) {
  		if (client->msg) {
@@ -24,4 +24,4 @@ index f97ee033b..398227ab2 100755
 +			if (status == MGMT_STATUS_INVALID_PARAMS || status == MGMT_STATUS_REJECTED || status == MGMT_STATUS_BUSY) {
  				DBG("Invalid params received, setting flag to prevent getting stuck");
  				adapter->scan_stuck = true;
- 				//resetting information for adapter to reflect that it is no longer discovering
+ 				//resetting information for adapter to reflect that it is no longer discovering 

@@ -8,10 +8,11 @@ Signed-off-by: mselva006c <mani_selvaraj@comcast.com>
  src/bluetooth.service.in | 4 +++-
  1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/src/bluetooth.service.in b/src/bluetooth.service.in
-index f9faaa4..18e5687 100644
---- a/src/bluetooth.service.in
-+++ b/src/bluetooth.service.in
+Upstream-Status: Inappropriate [RDK-specific systemd service dependencies]
+Index: bluez-5.48/src/bluetooth.service.in
+===================================================================
+--- bluez-5.48.orig/src/bluetooth.service.in	2026-11-23 12:39:13.573073871 +0000
++++ bluez-5.48/src/bluetooth.service.in	2026-11-23 12:39:21.673103233 +0000
 @@ -1,5 +1,7 @@
  [Unit]
  Description=Bluetooth service
@@ -20,8 +21,8 @@ index f9faaa4..18e5687 100644
  Documentation=man:bluetoothd(8)
  ConditionPathIsDirectory=/sys/class/bluetooth
  
-@@ -9,7 +11,7 @@ BusName=org.bluez
- ExecStart=@pkglibexecdir@/bluetoothd
+@@ -9,7 +11,7 @@
+ ExecStart=@libexecdir@/bluetoothd
  NotifyAccess=main
  #WatchdogSec=10
 -#Restart=on-failure

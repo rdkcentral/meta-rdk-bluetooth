@@ -1,3 +1,4 @@
+Upstream-Status: Pending
 diff --git a/profiles/input/hog.c b/profiles/input/hog.c
 index e0e9df27c..802a98042 100644
 --- a/profiles/input/hog.c

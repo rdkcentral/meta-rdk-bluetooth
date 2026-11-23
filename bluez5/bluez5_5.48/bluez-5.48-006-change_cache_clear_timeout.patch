@@ -9,8 +9,10 @@ Source: SKY
 Upstream-Status: Pending
 Signed-off-by: Tijo Thomas John <tijo.thomas@sky.uk>
 ###################################################################################################
---- a/src/adapter.c	2015-01-14 15:34:19.404767056 +0000
-+++ b/src/adapter.c	2015-01-14 15:34:29.196767307 +0000
+Index: bluez-5.48/src/adapter.c
+===================================================================
+--- bluez-5.48.orig/src/adapter.c	2026-11-23 12:39:13.265072755 +0000
++++ bluez-5.48/src/adapter.c	2026-11-23 12:40:01.873248949 +0000
 @@ -86,7 +86,7 @@
  
  #define CONN_SCAN_TIMEOUT (3)
@@ -19,4 +21,4 @@ Signed-off-by: Tijo Thomas John <tijo.thomas@sky.uk>
 +#define TEMP_DEV_TIMEOUT (30)
  #define BONDING_TIMEOUT (2 * 60)
  
- static DBusConnection *dbus_conn = NULL;
+ #define SCAN_TYPE_BREDR (1 << BDADDR_BREDR)

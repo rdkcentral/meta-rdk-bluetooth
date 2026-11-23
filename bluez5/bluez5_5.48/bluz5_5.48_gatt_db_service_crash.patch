@@ -5,6 +5,7 @@ Subject: Fix for Bluetoothd crash with gatt_db_service_foreach
 Signed-off-by: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
 Index: bluez-5.48/src/shared/gatt-db.c
 ===================================================================
+Upstream-Status: Pending
 --- bluez-5.48.orig/src/shared/gatt-db.c
 +++ bluez-5.48/src/shared/gatt-db.c
 @@ -124,6 +124,7 @@ static void pending_read_result(struct p

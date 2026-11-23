@@ -29,10 +29,10 @@ Signed-off-by: Tijo Thomas John <tijo.thomas@sky.uk>
  src/storage.h           |  4 ++++
  6 files changed, 56 insertions(+)
 
-diff --git a/profiles/input/device.c b/profiles/input/device.c
-index d66c41a..6b63c51 100644
---- a/profiles/input/device.c
-+++ b/profiles/input/device.c
+Index: bluez-5.48/profiles/input/device.c
+===================================================================
+--- bluez-5.48.orig/profiles/input/device.c	2026-11-23 12:39:13.109072189 +0000
++++ bluez-5.48/profiles/input/device.c	2026-11-23 12:40:02.101249775 +0000
 @@ -56,6 +56,10 @@
  #include "device.h"
  #include "hidp_defs.h"
@@ -44,10 +44,10 @@ index d66c41a..6b63c51 100644
  #define INPUT_INTERFACE "org.bluez.Input1"
  
  enum reconnect_mode_t {
-diff --git a/src/adapter.c b/src/adapter.c
-index ca61a69..8eca76d 100644
---- a/src/adapter.c
-+++ b/src/adapter.c
+Index: bluez-5.48/src/adapter.c
+===================================================================
+--- bluez-5.48.orig/src/adapter.c	2026-11-23 12:40:01.873248949 +0000
++++ bluez-5.48/src/adapter.c	2026-11-23 12:40:02.105249790 +0000
 @@ -77,6 +77,10 @@
  #include "advertising.h"
  #include "eir.h"
@@ -59,10 +59,10 @@ index ca61a69..8eca76d 100644
  #define ADAPTER_INTERFACE	"org.bluez.Adapter1"
  
  #define MODE_OFF		0x00
-diff --git a/src/device.c b/src/device.c
-index ee61d7c..8266ce4 100644
---- a/src/device.c
-+++ b/src/device.c
+Index: bluez-5.48/src/device.c
+===================================================================
+--- bluez-5.48.orig/src/device.c	2026-11-23 12:40:01.821248760 +0000
++++ bluez-5.48/src/device.c	2026-11-23 12:40:02.105249790 +0000
 @@ -75,6 +75,10 @@
  #include "attrib-server.h"
  #include "eir.h"
@@ -74,10 +74,10 @@ index ee61d7c..8266ce4 100644
  #define IO_CAPABILITY_NOINPUTNOOUTPUT	0x03
  
  #define DISCONNECT_TIMER	2
-diff --git a/src/main.c b/src/main.c
-index 3464047..8a4f0d8 100644
---- a/src/main.c
-+++ b/src/main.c
+Index: bluez-5.48/src/main.c
+===================================================================
+--- bluez-5.48.orig/src/main.c	2026-11-23 12:40:02.049249587 +0000
++++ bluez-5.48/src/main.c	2026-11-23 12:40:02.105249790 +0000
 @@ -29,6 +29,7 @@
  
  #include <errno.h>
@@ -86,16 +86,16 @@ index 3464047..8a4f0d8 100644
  #include <unistd.h>
  #include <stdlib.h>
  #include <string.h>
-@@ -60,6 +60,8 @@
- #include "profile.h"
- #include "systemd.h"
+@@ -63,6 +64,8 @@
+ #include "breakpad_wrapper.h"
+ #endif
  
 +#include "storage.h"
 +
  #define BLUEZ_NAME "org.bluez"
  
  #define DEFAULT_PAIRABLE_TIMEOUT       0 /* disabled */
-@@ -142,6 +144,32 @@ static GKeyFile *load_config(const char *file)
+@@ -145,6 +148,32 @@
  	return keyfile;
  }
  
@@ -128,7 +128,7 @@ index 3464047..8a4f0d8 100644
  static void parse_did(const char *did)
  {
  	int result;
-@@ -542,6 +570,7 @@ static char *option_debug = NULL;
+@@ -545,6 +574,7 @@
  static char *option_plugin = NULL;
  static char *option_noplugin = NULL;
  static char *option_configfile = NULL;
@@ -136,7 +136,7 @@ index 3464047..8a4f0d8 100644
  static gboolean option_compat = FALSE;
  static gboolean option_detach = TRUE;
  static gboolean option_version = FALSE;
-@@ -634,6 +663,8 @@ static GOptionEntry options[] = {
+@@ -637,6 +667,8 @@
  				"Specify plugins not to load", "NAME,..." },
  	{ "configfile", 'f', 0, G_OPTION_ARG_STRING, &option_configfile,
  			"Specify an explicit path to the config file", "FILE"},
@@ -145,7 +145,7 @@ index 3464047..8a4f0d8 100644
  	{ "compat", 'C', 0, G_OPTION_ARG_NONE, &option_compat,
  				"Provide deprecated command line interfaces" },
  	{ "experimental", 'E', 0, G_OPTION_ARG_NONE, &option_experimental,
-@@ -716,6 +747,11 @@ int main(int argc, char *argv[])
+@@ -723,6 +755,11 @@
  
  	parse_config(main_conf);
  
@@ -157,10 +157,10 @@ index 3464047..8a4f0d8 100644
  	if (connect_dbus() < 0) {
  		error("Unable to get on D-Bus");
  		exit(1);
-diff --git a/src/storage.c b/src/storage.c
-index 734a9e0..e578839 100644
---- a/src/storage.c
-+++ b/src/storage.c
+Index: bluez-5.48/src/storage.c
+===================================================================
+--- bluez-5.48.orig/src/storage.c	2026-11-23 12:39:13.109072189 +0000
++++ bluez-5.48/src/storage.c	2026-11-23 12:40:02.105249790 +0000
 @@ -47,6 +47,10 @@
  #include "uuid-helper.h"
  #include "storage.h"
@@ -172,10 +172,10 @@ index 734a9e0..e578839 100644
  /* When all services should trust a remote device */
  #define GLOBAL_TRUST "[all]"
  
-diff --git a/src/storage.h b/src/storage.h
-index 1c0ad57..5592257 100644
---- a/src/storage.h
-+++ b/src/storage.h
+Index: bluez-5.48/src/storage.h
+===================================================================
+--- bluez-5.48.orig/src/storage.h	2026-11-23 12:39:13.109072189 +0000
++++ bluez-5.48/src/storage.h	2026-11-23 12:40:02.105249790 +0000
 @@ -21,6 +21,10 @@
   *
   */
@@ -187,6 +187,3 @@ index 1c0ad57..5592257 100644
  int read_discoverable_timeout(const char *src, int *timeout);
  int read_pairable_timeout(const char *src, int *timeout);
  int read_on_mode(const char *src, char *mode, int length);
--- 
-2.18.0
-

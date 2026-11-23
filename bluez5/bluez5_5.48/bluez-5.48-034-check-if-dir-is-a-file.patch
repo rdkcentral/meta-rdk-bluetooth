@@ -4,6 +4,7 @@ Subject: [PATCH] RDKTV-14757: PR1 remote is NOT reconnecting after TV reboot
 Source: SKY
 Signed-off-by: James Dowdells;james.dowdells@sky.uk;
 
+Upstream-Status: Inappropriate [RDKTV-specific storage behavior]
 --- a/src/textfile.c	2022-02-18 10:17:22.289858906 +0000
 +++ b/src/textfile.c	2022-02-18 10:17:33.673850759 +0000
 @@ -37,8 +37,40 @@

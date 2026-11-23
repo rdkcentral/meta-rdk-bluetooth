@@ -4,7 +4,7 @@ From:
 Subject: [PATCH] bluez endpoint crash fix
 Source: Sky
 License:
-Upstream-Status:
+Upstream-Status: Inappropriate [RDK-specific endpoint handling]
 Signed-off-by: ppalan289 <preethi_palanisamy@comcast.com>
 ###################################################################
 Index: bluez-5.48/profiles/audio/a2dp.c

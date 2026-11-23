@@ -1,3 +1,4 @@
+Upstream-Status: Pending
 diff --git a/src/adapter.c b/src/adapter.c
 index d0d4f6a..23cbeeb 100755
 --- a/src/adapter.c
