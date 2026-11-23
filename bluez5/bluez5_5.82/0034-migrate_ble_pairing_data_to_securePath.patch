@@ -1,0 +1,22 @@
+##################################################################
+Subject: [PATCH] Migrate BLE pairing data to secure path
+Source: SKY
+Upstream-Status: Pending
+Signed-off-by: THARUN KUMAR VENKATACHALEM (tvenka679_comcast)
+##################################################################
+
+--- a/src/bluetooth.service.in
++++ b/src/bluetooth.service.in
+@@ -12,11 +12,5 @@
+-ExecStartPre=/bin/mkdir -p /var/lib/bluetooth
+-ExecStartPre=/bin/mkdir -p /opt/lib/bluetooth
+-
+-ExecStartPre=/bin/sh -c 'if [ -d /opt/secure/lib/bluetooth ]; then \
+-    cp -r /opt/secure/lib/bluetooth /opt/lib/ && \
+-    rm -r /opt/secure/lib/bluetooth; \
+-fi'
++ExecStartPre=/bin/sh -c '/etc/bluetooth/bt_secure_path_setup.sh'
+ 
+ ExecStart=/usr/lib/bluez5/bluetooth/bluetoothd -d
+ NotifyAccess=main
+ #WatchdogSec=10

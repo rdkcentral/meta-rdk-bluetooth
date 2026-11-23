@@ -32,6 +32,8 @@ SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://bluz5_5.48_gatt_db_service_crash.patch \
     file://bluez-5.48-046-prevent-scan-becoming-stuck.patch \
     file://bluez-5.48-049-Queue_remove_crash.patch \
+    file://bluez-5.48-050-migrate_ble_pairing_data_to_originalPath.patch \
+    file://bt_original_path_setup.sh \
     file://bluez-5.48-051-fix-for-incorrect-transaction-label.patch \
     file://bluez-5.48-052-bt_uuid_to_uuid128-crash.patch \
     file://bluez-5.48-053-set-ad-flags-and-update-cache-timeout.patch \
@@ -67,6 +69,8 @@ SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
     file://0003-Fix-input-hog-connection-with-slow-pairing-devices.patch \
     file://CVE-2021-3658_5.48_fix.patch \
     file://bluez-5.48-070-RDK-59395-BT-SIG-PTS-certification-changes.patch \
+    file://bluez-5.48-071-migrate_ble_pairing_data_to_securePath.patch \
+    file://bt_secure_path_setup.sh \
     file://bluez-5.48-073-RDKOSS-1008-endpoint-crash.patch \
     file://bluez-5.48-074-LLAMA-18285-increase-gatt-notify-pipe-buffer.patch \
     "
