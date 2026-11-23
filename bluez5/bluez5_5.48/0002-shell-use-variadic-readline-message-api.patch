@@ -1,0 +1,18 @@
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Subject: [PATCH] shell: use the variadic readline message prototype
+
+The readline header exposes the variadic rl_message prototype when
+USE_VARARGS and PREFER_STDARG are defined. Enable those declarations so
+modern compilers accept BlueZ's formatted rl_message calls.
+
+Upstream-Status: Pending
+---
+ src/shared/shell.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/shared/shell.c b/src/shared/shell.c
+--- a/src/shared/shell.c
++++ b/src/shared/shell.c
+@@ -36,0 +37,2 @@
++#define USE_VARARGS
++#define PREFER_STDARG
