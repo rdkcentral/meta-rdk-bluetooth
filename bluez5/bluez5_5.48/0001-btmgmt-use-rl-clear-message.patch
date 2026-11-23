@@ -1,0 +1,22 @@
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Subject: [PATCH] btmgmt: use rl_clear_message to clear the readline message
+
+Avoid passing an argument to rl_message, whose declaration in the target
+readline headers is an old-style unspecified-arguments prototype.
+
+Upstream-Status: Pending
+---
+ tools/btmgmt.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/btmgmt.c b/tools/btmgmt.c
+--- a/tools/btmgmt.c
++++ b/tools/btmgmt.c
+@@ -4879,6 +4879,6 @@
+ 		io_destroy(input);
+ 
+-		rl_message("");
++		rl_clear_message();
+ 		rl_callback_handler_remove();
+ 	}
+ 
