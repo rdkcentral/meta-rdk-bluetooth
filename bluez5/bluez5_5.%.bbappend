@@ -73,6 +73,13 @@ do_install:append:client() {
     install -m 0755 ${WORKDIR}/bt_secure_path_setup.sh ${D}/${sysconfdir}/bluetooth/
 }
 
+do_install:append:broadband() {
+    mkdir -p ${D}${sysconfdir}/bluetooth/
+    install -c -m 644 ${S}/src/main.conf  ${D}${sysconfdir}/bluetooth/main.conf
+    install -m 0755 ${WORKDIR}/bt_original_path_setup.sh ${D}${sysconfdir}/bluetooth/
+    install -m 0755 ${WORKDIR}/bt_secure_path_setup.sh ${D}${sysconfdir}/bluetooth/
+}
+
 SYSTEMD_SERVICE:${PN} = "bluetooth.service"
 SYSTEMD_AUTO_ENABLE = "enable"
 
