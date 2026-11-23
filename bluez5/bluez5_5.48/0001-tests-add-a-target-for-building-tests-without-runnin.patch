@@ -7,6 +7,7 @@ Signed-off-by: Alexander Kanavin <alex.kanavin@gmail.com>
  Makefile.am | 3 +++
  1 file changed, 3 insertions(+)
 
+Upstream-Status: Inappropriate [OpenEmbedded-specific test target]
 diff --git a/Makefile.am b/Makefile.am
 index 1a48a71..ba3b92f 100644
 --- a/Makefile.am

@@ -4,7 +4,7 @@ Subject: [PATCH] add debug logging to bluez daemon
 
 add -d option when starting the daemon to enable debug logs
 
-Upstream-Status: N/A
+Upstream-Status: Inappropriate [RDK-specific debug logging]
 Source: Comcast
 Signed-off-by: Eugene Gallagher <eugene_gallagher@comcast.com>
 

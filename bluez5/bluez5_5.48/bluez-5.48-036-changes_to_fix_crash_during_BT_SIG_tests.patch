@@ -5,6 +5,7 @@ Subject: Bluez patch to fix crash during BT SIG testing
 Source: SKY
 Signed-off-by: Tijo Thomas John <tijo.thomas@sky.uk>
 #####################################################################
+Upstream-Status: Pending
 diff --git a/profiles/audio/avdtp.c b/profiles/audio/avdtp.c
 index 51ead684a..620a76c90 100644
 --- a/profiles/audio/avdtp.c

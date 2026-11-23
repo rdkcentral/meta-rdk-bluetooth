@@ -5,6 +5,7 @@ Subject: Fixed for observed bluetooth queue_remove crash
 Signed-off-by: ssimga507 <srikanth_Simgamsetti@comcast.com>
 Index: bluez-5.48/src/gatt-database.c
 ===================================================================
+Upstream-Status: Pending
 --- bluez-5.48.orig/src/gatt-database.c
 +++ bluez-5.48/src/gatt-database.c
 @@ -1987,6 +1987,11 @@ static void acquire_write_reply(DBusMess

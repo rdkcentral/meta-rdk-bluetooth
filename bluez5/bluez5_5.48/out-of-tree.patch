@@ -10,6 +10,7 @@ Signed-off-by: Ross Burton <ross.burton@intel.com>
  Makefile.obexd | 1 +
  1 file changed, 1 insertion(+)
 
+Upstream-Status: Inappropriate [OpenEmbedded-specific build integration]
 diff --git a/Makefile.obexd b/Makefile.obexd
 index 2e33cbc..c8286f0 100644
 --- a/Makefile.obexd

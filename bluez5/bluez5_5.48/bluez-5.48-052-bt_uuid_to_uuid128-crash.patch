@@ -1,5 +1,6 @@
 Index: bluez-5.48/lib/uuid.c
 ===================================================================
+Upstream-Status: Pending
 --- bluez-5.48.orig/lib/uuid.c
 +++ bluez-5.48/lib/uuid.c
 @@ -127,6 +127,10 @@ int bt_uuid_cmp(const bt_uuid_t *uuid1,

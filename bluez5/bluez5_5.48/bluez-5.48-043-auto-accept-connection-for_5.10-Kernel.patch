@@ -8,11 +8,11 @@ Upstream-Status: Pending
 Signed-off-by: abhishek gupta <abhishek.gupta@sky.uk>
 #########################################################################
 
-diff --git a/src/device.c b/src/device.c
-index 69f98e488a..5f9ad227d9 100644
---- a/src/device.c
-+++ b/src/device.c
-@@ -6168,12 +6168,23 @@ int device_confirm_passkey(struct btd_device *device, uint8_t type,
+Index: bluez-5.48/src/device.c
+===================================================================
+--- bluez-5.48.orig/src/device.c	2026-11-23 12:40:03.201253762 +0000
++++ bluez-5.48/src/device.c	2026-11-23 12:40:03.261253980 +0000
+@@ -5885,12 +5885,23 @@
  
  	auth->passkey = passkey;
  
@@ -37,5 +37,4 @@ index 69f98e488a..5f9ad227d9 100644
 +	}
  
  	if (err < 0) {
- 		if (err == -EINPROGRESS) {
-
+ 		error("Failed requesting authentication");

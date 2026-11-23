@@ -6,6 +6,7 @@ Test Procedure: repeatedly scan for new devices (with all devices in the scan) a
 Signed-off-by: Natraj Muthusamy <Natraj_Muthusamy@comcast.com>
 Index: bluez-5.48/src/adapter.c
 ===================================================================
+Upstream-Status: Pending
 --- bluez-5.48.orig/src/adapter.c
 +++ bluez-5.48/src/adapter.c
 @@ -269,6 +269,7 @@ struct btd_adapter {

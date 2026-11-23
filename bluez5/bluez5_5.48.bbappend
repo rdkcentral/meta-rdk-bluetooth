@@ -2,6 +2,8 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}_${PV}:"
 
 ## Generic BlueZ 5.48 patches (order preserved from original apply sequence)
 SRC_URI += "file://0001-bluetooth_service_in_generic.patch \
+    file://0001-btmgmt-use-rl-clear-message.patch \
+    file://0002-shell-use-variadic-readline-message-api.patch \
     file://breakpad.patch \
     file://bluez-5.48-003-add-configurable-char-write-value-options.patch \
     file://bluez-5.48-005-enable_auto_connect_on_all_disconnects.patch \

@@ -1,5 +1,6 @@
 Index: bluez-5.48/profiles/audio/avdtp.c
 ===================================================================
+Upstream-Status: Inappropriate [RDK-specific crash fix]
 --- bluez-5.48.orig/profiles/audio/avdtp.c
 +++ bluez-5.48/profiles/audio/avdtp.c
 @@ -707,6 +707,11 @@ static void stream_free(void *data)

@@ -5,6 +5,7 @@ Subject: bluz5 5.48 build fails in kirkstone
 Signed-off-by: mselva006c <mani_selvaraj@comcast.com>
 Index: bluez-5.48/obexd/client/sync.c
 ===================================================================
+Upstream-Status: Inappropriate [Kirkstone-specific build compatibility]
 --- bluez-5.48.orig/obexd/client/sync.c
 +++ bluez-5.48/obexd/client/sync.c
 @@ -58,7 +58,7 @@ static DBusConnection *conn = NULL;

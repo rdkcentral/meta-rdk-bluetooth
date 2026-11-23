@@ -10,6 +10,7 @@ RDEPENDS:${PN} = "bluez5 sdbus-c++ pipewire wireplumber"
 SRC_URI = "git://github.com/rdkcentral/bluetooth-sdk.git;protocol=https;branch=develop"
 SRCREV = "0016f819a2a515d0180f6a2bd83c317ce2973f13"
 S:kirkstone = "${WORKDIR}/git"
+S:wrynose = "${UNPACKDIR}/git"
 
 CFLAGS:append = " -I${STAGING_INCDIR} "
 # LDFLAGS_append = " -lsdbus-c++  "

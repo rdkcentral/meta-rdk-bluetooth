@@ -17,6 +17,9 @@ Index: bluez-5.48/profiles/input/hog-lib.c
 ===================================================================
 --- bluez-5.48.orig/profiles/input/hog-lib.c
 +++ bluez-5.48/profiles/input/hog-lib.c
+@@ -111,0 +112,2 @@
++static void uhid_destroy(struct bt_hog *hog);
++
 @@ -1623,7 +1623,7 @@ void bt_hog_detach(struct bt_hog *hog)
  	GSList *l;
  
@@ -39,7 +42,7 @@ Index: bluez-5.48/profiles/input/hog-lib.c
  	return 0;
  }
  
-+void uhid_destroy(struct bt_hog *hog)
++static void uhid_destroy(struct bt_hog *hog)
 +{
 +        int err;
 +

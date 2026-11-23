@@ -1,5 +1,6 @@
 Index: bluez-5.48/profiles/battery/battery.c
 ===================================================================
+Upstream-Status: Pending
 --- bluez-5.48.orig/profiles/battery/battery.c
 +++ bluez-5.48/profiles/battery/battery.c
 @@ -248,6 +248,7 @@ static void batt_remove(struct btd_servi

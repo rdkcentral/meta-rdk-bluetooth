@@ -12,6 +12,7 @@ Signed-off-by: Chandresh Pitty <Chandresh_Pitty@cable.comcast.com>
 
 Index: bluez-5.48/profiles/audio/avrcp.c
 ===================================================================
+Upstream-Status: Inappropriate [RDKTV-specific AVRCP behavior]
 --- bluez-5.48.orig/profiles/audio/avrcp.c
 +++ bluez-5.48/profiles/audio/avrcp.c
 @@ -3547,11 +3547,13 @@ static void avrcp_volume_changed(struct

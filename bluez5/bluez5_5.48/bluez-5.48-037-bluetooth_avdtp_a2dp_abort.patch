@@ -37,6 +37,7 @@ when we use BT Voice remote during/on wake-up from Llama Deep sleep
 Signed-off-by: Chandresh Pitty <Chandresh_Pitty@cable.comcast.com>
 Index: bluez-5.48/profiles/audio/a2dp.c
 ===================================================================
+Upstream-Status: Pending
 --- bluez-5.48.orig/profiles/audio/a2dp.c
 +++ bluez-5.48/profiles/audio/a2dp.c
 @@ -105,6 +105,7 @@ struct a2dp_setup {

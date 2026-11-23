@@ -1,5 +1,6 @@
 Index: bluez-5.48/src/adapter.c
 ===================================================================
+Upstream-Status: Pending
 --- bluez-5.48.orig/src/adapter.c
 +++ bluez-5.48/src/adapter.c
 @@ -1892,7 +1892,8 @@ static void discovery_cleanup(struct btd

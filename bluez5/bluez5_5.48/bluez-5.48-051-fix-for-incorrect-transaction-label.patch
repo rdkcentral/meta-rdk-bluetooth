@@ -1,5 +1,6 @@
 Index: bluez-5.48/profiles/audio/avdtp.c
 ===================================================================
+Upstream-Status: Pending
 --- bluez-5.48.orig/profiles/audio/avdtp.c
 +++ bluez-5.48/profiles/audio/avdtp.c
 @@ -298,7 +298,6 @@ struct in_buf {

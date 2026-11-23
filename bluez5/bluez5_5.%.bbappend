@@ -17,10 +17,10 @@ LOGROTATE_ROTATION_bluez="5"
 
 # Remapping default localstatedir which has a value /var to /opt (persistent memory) across boxes
 # to store bluetooth device and runtime operations data across STB power cycles
-EXTRA_OECONF:append:hybrid += " --localstatedir=/opt"
-EXTRA_OECONF:append:client += " --localstatedir=/opt/secure"
+EXTRA_OECONF:append:hybrid = " --localstatedir=/opt"
+EXTRA_OECONF:append:client = " --localstatedir=/opt/secure"
 
-EXTRA_OECONF:append:broadband += " --localstatedir=/opt/secure"
+EXTRA_OECONF:append:broadband = " --localstatedir=/opt/secure"
 
 #PACKAGECONFIG:append = " experimental"
 EXTRA_OECONF += " --with-systemdsystemunitdir=${systemd_unitdir}/system"

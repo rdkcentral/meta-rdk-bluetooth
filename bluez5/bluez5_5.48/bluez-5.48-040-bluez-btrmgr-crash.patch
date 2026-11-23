@@ -5,6 +5,7 @@ Subject: Fix for Bluetoothd and BtrMgrBus process crash
 Signed-off-by: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
 Index: bluez-5.54/src/agent.c
 ===================================================================
+Upstream-Status: Inappropriate [RDK BtrMgr integration]
 --- bluez-5.54.orig/src/agent.c
 +++ bluez-5.54/src/agent.c
 @@ -218,7 +218,7 @@ void agent_unref(struct agent *agent)

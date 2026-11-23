@@ -20,7 +20,7 @@ SRC_URI = "git://gitlab.freedesktop.org/pipewire/wireplumber.git;branch=master;p
            file://wireplumber_sandbox_allow_os_execute.patch \
            "
 
-S = "${WORKDIR}/git"
+S = "${UNPACKDIR}/git"
 
 inherit meson pkgconfig gobject-introspection systemd logrotate_config
 
@@ -57,7 +57,7 @@ WP_MODULE_SUBDIR = "wireplumber-0.5"
 
 add_custom_lua_config_scripts() {
     install -d ${D}${datadir}/wireplumber/main.lua.d
-    install -m 0644 ${WORKDIR}/90-OE-disable-session-dbus-dependent-features.lua ${D}${datadir}/wireplumber/main.lua.d/
+    install -m 0644 ${UNPACKDIR}/90-OE-disable-session-dbus-dependent-features.lua ${D}${datadir}/wireplumber/main.lua.d/
 }
 
 do_install[postfuncs] += "add_custom_lua_config_scripts"
@@ -170,4 +170,3 @@ LOGROTATE_ROTATION_MEM_wireplumber = "2"
 #HDD_ENABLE
 LOGROTATE_SIZE_wireplumber = "512000"
 LOGROTATE_ROTATION_wireplumber = "5"
-

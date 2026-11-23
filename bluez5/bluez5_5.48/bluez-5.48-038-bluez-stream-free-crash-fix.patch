@@ -5,6 +5,7 @@ Subject: Fix for Bluetoothd process crash(stream_free) for bluez5
 Signed-off-by: Srikanth Simgamsetti <srikanth_simgamsetti@comcast.com>
 Index: bluez-5.48/profiles/audio/avdtp.c
 ===================================================================
+Upstream-Status: Pending
 --- bluez-5.48.orig/profiles/audio/avdtp.c
 +++ bluez-5.48/profiles/audio/avdtp.c
 @@ -707,8 +707,11 @@ static void stream_free(void *data)
