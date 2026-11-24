@@ -14,6 +14,8 @@ CFLAGS:append = " -I${STAGING_INCDIR} "
 
 EXTRA_OECMAKE_BUILD = ""
 EXTRA_OECMAKE += "-DWITH_CLI=ON -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON -DCMAKE_INSTALL_RPATH=\$ORIGIN/../../lib/bluetoothsdk -DAUDIO_SUPPORT=ON"
+# On by default, off when disable_unsupported_gamepad is in DISTRO_FEATURES.
+EXTRA_OECMAKE += "${@bb.utils.contains('DISTRO_FEATURES', 'disable_unsupported_gamepad', '-DBT_UNSUPPORTED_GAMEPAD=OFF', '-DBT_UNSUPPORTED_GAMEPAD=ON', d)}"
 
 inherit cmake externalsrc breakpad-wrapper pkgconfig
 
